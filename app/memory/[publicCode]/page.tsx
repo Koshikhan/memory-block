@@ -16,7 +16,6 @@ const MAX_FILE_SIZE = 25 * 1024 * 1024;
 type CreationMode = "STAFF" | "CUSTOMER";
 
 type StaffMemory = Awaited<ReturnType<typeof createMemory>>;
-
 type PendingMemory = Awaited<
   ReturnType<typeof createPendingMemory>
 >;
@@ -24,18 +23,18 @@ type PendingMemory = Awaited<
 type SavedMemory = StaffMemory | PendingMemory;
 
 export default function Home() {
-  // Order details
+  // Order
   const [orderNumber, setOrderNumber] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
 
-  // Memory details
+  // Memory
   const [sender, setSender] = useState("");
   const [recipient, setRecipient] = useState("");
   const [message, setMessage] = useState("");
 
-  // Creation mode
+  // How the audio will be added
   const [creationMode, setCreationMode] =
     useState<CreationMode>("STAFF");
 
@@ -45,10 +44,9 @@ export default function Home() {
 
   const [audioUrl, setAudioUrl] = useState("");
 
-  // UI state
+  // UI
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-
   const [recordingBusy, setRecordingBusy] =
     useState(false);
 
@@ -83,17 +81,12 @@ export default function Home() {
     }
 
     previewUrlRef.current = "";
-
     setAudioUrl("");
     setAudioFile(null);
   }
 
-  function selectAudio(
-    file: File | undefined
-  ) {
-    if (!file || locked) {
-      return;
-    }
+  function selectAudio(file: File | undefined) {
+    if (!file || locked) return;
 
     setError("");
 
@@ -105,7 +98,6 @@ export default function Home() {
       setError(
         "Please choose an MP3, M4A, WAV, OGG, OPUS or WebM file."
       );
-
       return;
     }
 
@@ -113,24 +105,19 @@ export default function Home() {
       setError(
         "This file is empty. Please choose another recording."
       );
-
       return;
     }
 
-    if (
-      file.size > MAX_FILE_SIZE
-    ) {
+    if (file.size > MAX_FILE_SIZE) {
       setError(
         "Please choose a recording up to 25 MB."
       );
-
       return;
     }
 
     clearAudio();
 
-    const url =
-      URL.createObjectURL(file);
+    const url = URL.createObjectURL(file);
 
     previewUrlRef.current = url;
 
@@ -141,9 +128,7 @@ export default function Home() {
   function changeCreationMode(
     mode: CreationMode
   ) {
-    if (locked) {
-      return;
-    }
+    if (locked) return;
 
     setError("");
     setCreationMode(mode);
@@ -189,7 +174,6 @@ export default function Home() {
       setError(
         "Please upload or record a voice note first."
       );
-
       return;
     }
 
@@ -207,7 +191,6 @@ export default function Home() {
         message,
       };
 
-      // Staff uploads / records now
       if (creationMode === "STAFF") {
         if (!audioFile) {
           throw new Error(
@@ -215,17 +198,13 @@ export default function Home() {
           );
         }
 
-        const memory =
-          await createMemory({
-            ...commonDetails,
-            audioFile,
-          });
+        const memory = await createMemory({
+          ...commonDetails,
+          audioFile,
+        });
 
         setSavedMemory(memory);
-      }
-
-      // Customer uploads later
-      else {
+      } else {
         const memory =
           await createPendingMemory(
             commonDetails
@@ -233,14 +212,10 @@ export default function Home() {
 
         setSavedMemory(memory);
 
-        const baseUrl =
-          getBaseUrl();
-
-        const uploadUrl =
-          `${baseUrl}/upload/${memory.uploadToken}`;
+        const baseUrl = getBaseUrl();
 
         setCustomerUploadUrl(
-          uploadUrl
+          `${baseUrl}/upload/${memory.uploadToken}`
         );
       }
     } catch (error) {
@@ -256,9 +231,7 @@ export default function Home() {
   }
 
   async function copyUploadLink() {
-    if (!customerUploadUrl) {
-      return;
-    }
+    if (!customerUploadUrl) return;
 
     try {
       await navigator.clipboard.writeText(
@@ -278,17 +251,12 @@ export default function Home() {
   }
 
   function openWhatsApp() {
-    if (!customerUploadUrl) {
-      return;
-    }
+    if (!customerUploadUrl) return;
 
     const text = [
       `Hi ${customerName.trim() || "there"},`,
       "",
-      `Please add your voice message for ${
-        recipient.trim() ||
-        "your Memory Block"
-      }.`,
+      `Please add your voice message for ${recipient.trim() || "your Memory Block"}.`,
       "",
       customerUploadUrl,
       "",
@@ -328,7 +296,6 @@ export default function Home() {
     setError("");
     setSaving(false);
     setRecordingBusy(false);
-
     setSavedMemory(null);
 
     setCustomerUploadUrl("");
@@ -356,13 +323,13 @@ export default function Home() {
         </h1>
 
         <p className="mt-3 text-slate-600">
-          Create the order and either add the voice
-          message now or let the customer upload it
-          from their phone.
+          Create the order and either add
+          the voice message now or let the
+          customer upload it from their phone.
         </p>
 
         <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
-          {/* LEFT SIDE */}
+          {/* LEFT */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             <form
               onSubmit={handleSave}
@@ -452,8 +419,9 @@ export default function Home() {
                 </div>
 
                 <p className="mt-3 text-xs text-slate-500">
-                  Email or mobile is required if the
-                  customer will upload later.
+                  Email or mobile is required
+                  if the customer will upload
+                  later.
                 </p>
               </fieldset>
 
@@ -526,7 +494,7 @@ export default function Home() {
                 </label>
               </fieldset>
 
-              {/* CREATION METHOD */}
+              {/* METHOD */}
               {!savedMemory && (
                 <fieldset
                   disabled={saving}
@@ -537,7 +505,6 @@ export default function Home() {
                   </legend>
 
                   <div className="mt-5 grid gap-3">
-                    {/* Staff */}
                     <button
                       type="button"
                       onClick={() =>
@@ -554,7 +521,8 @@ export default function Home() {
                       <div className="flex gap-3">
                         <div
                           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            creationMode === "STAFF"
+                            creationMode ===
+                            "STAFF"
                               ? "border-emerald-900"
                               : "border-slate-300"
                           }`}
@@ -571,14 +539,14 @@ export default function Home() {
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            Staff records or uploads the
-                            customer&apos;s voice message.
+                            Staff records or
+                            uploads the customer&apos;s
+                            voice message.
                           </p>
                         </div>
                       </div>
                     </button>
 
-                    {/* Customer */}
                     <button
                       type="button"
                       onClick={() =>
@@ -587,7 +555,8 @@ export default function Home() {
                         )
                       }
                       className={`rounded-xl border-2 p-4 text-left transition ${
-                        creationMode === "CUSTOMER"
+                        creationMode ===
+                        "CUSTOMER"
                           ? "border-emerald-900 bg-emerald-50"
                           : "border-slate-200 hover:border-slate-300"
                       }`}
@@ -595,7 +564,8 @@ export default function Home() {
                       <div className="flex gap-3">
                         <div
                           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            creationMode === "CUSTOMER"
+                            creationMode ===
+                            "CUSTOMER"
                               ? "border-emerald-900"
                               : "border-slate-300"
                           }`}
@@ -612,8 +582,9 @@ export default function Home() {
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            Generate a private link for the
-                            customer to use on their phone.
+                            Generate a private
+                            link for the customer
+                            to use on their phone.
                           </p>
                         </div>
                       </div>
@@ -745,12 +716,14 @@ export default function Home() {
                     <>
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
                         <p className="font-semibold">
-                          ✓ Memory saved successfully
+                          ✓ Memory saved
+                          successfully
                         </p>
 
                         <p className="mt-2 text-sm">
-                          The voice message is ready and
-                          the QR code can now be printed.
+                          The voice message is
+                          ready and the QR code
+                          can now be printed.
                         </p>
                       </div>
 
@@ -771,7 +744,8 @@ export default function Home() {
 
                           <div>
                             <p className="font-semibold text-amber-950">
-                              Waiting for customer upload
+                              Waiting for customer
+                              upload
                             </p>
 
                             <p className="mt-2 text-sm leading-6 text-amber-800">
@@ -779,18 +753,19 @@ export default function Home() {
                               <strong>
                                 {orderNumber}
                               </strong>{" "}
-                              has been created. Send the
-                              private link below to the
+                              has been created.
+                              Send the private
+                              link below to the
                               customer.
                             </p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Upload link */}
                       <div className="mt-5 rounded-xl border border-slate-200 p-5">
                         <p className="text-sm font-semibold text-slate-900">
-                          Private customer upload link
+                          Private customer
+                          upload link
                         </p>
 
                         <div className="mt-3 rounded-lg bg-slate-50 p-3">
@@ -826,19 +801,15 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* QR locked */}
                       <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-5 text-center">
-                        <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-amber-100">
-                          ⏳
-                        </div>
-
-                        <p className="mt-3 font-semibold text-slate-700">
+                        <p className="font-semibold text-slate-700">
                           QR code pending
                         </p>
 
                         <p className="mt-2 text-sm leading-6 text-slate-500">
-                          The QR code will become available
-                          once the customer submits their
+                          The QR code will become
+                          available once the
+                          customer submits their
                           voice message.
                         </p>
                       </div>
@@ -859,11 +830,9 @@ export default function Home() {
                   disabled={
                     saving ||
                     recordingBusy ||
-                    (
-                      creationMode ===
-                        "STAFF" &&
-                      !audioFile
-                    )
+                    (creationMode ===
+                      "STAFF" &&
+                      !audioFile)
                   }
                   className="mt-7 w-full rounded-lg bg-emerald-900 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -907,12 +876,13 @@ export default function Home() {
                   </div>
 
                   <p className="mt-3 font-medium">
-                    Waiting for customer recording
+                    Waiting for customer
+                    recording
                   </p>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    Their voice message will appear once
-                    they submit it.
+                    Their voice message will
+                    appear once they submit it.
                   </p>
                 </div>
               ) : audioUrl ? (
@@ -925,12 +895,11 @@ export default function Home() {
                     key={audioUrl}
                     controls
                     preload="metadata"
-                    playsInline
                     src={audioUrl}
                     className="w-full"
                   >
-                    Your browser does not support audio
-                    playback.
+                    Your browser does not
+                    support audio playback.
                   </audio>
                 </>
               ) : (
@@ -940,8 +909,8 @@ export default function Home() {
                   </div>
 
                   <p className="mt-3 text-sm text-slate-500">
-                    Upload or record a voice note to
-                    preview it here.
+                    Upload or record a voice
+                    note to preview it here.
                   </p>
                 </div>
               )}
