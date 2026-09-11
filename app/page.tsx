@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
+import Link from "next/link";
 
 import {
   createMemory,
@@ -337,19 +338,30 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <span className="text-xl font-bold tracking-widest text-emerald-900">
-            MEMORY BLOCK
-          </span>
+     {/* Header */}
+<header className="border-b border-slate-200 bg-white">
+  <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <Link
+      href="/"
+      className="text-xl font-bold tracking-widest text-emerald-900"
+    >
+      MEMORY BLOCK
+    </Link>
 
-          <span className="text-sm text-slate-500">
-            Staff workspace
-          </span>
-        </div>
-      </header>
+    <div className="flex items-center gap-3">
+      <Link
+        href="/orders"
+        className="rounded-lg border border-emerald-900 px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+      >
+        Orders
+      </Link>
 
+      <span className="hidden text-sm text-slate-500 sm:inline">
+        Staff workspace
+      </span>
+    </div>
+  </div>
+</header>
       <div className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="text-3xl font-bold tracking-tight">
           Create a memory
