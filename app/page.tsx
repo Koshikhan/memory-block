@@ -9,6 +9,8 @@ import {
   createPendingMemory,
 } from "@/lib/memories";
 
+import { createClient } from "@/lib/supabase/client";
+
 import VoiceRecorder from "@/components/VoiceRecorder";
 import MemoryQr from "@/components/MemoryQr";
 
@@ -61,6 +63,12 @@ export default function Home() {
 
   const [copied, setCopied] = useState(false);
 
+  const [customerUploadReady, setCustomerUploadReady] =
+    useState(false);
+
+  const [uploadNotification, setUploadNotification] =
+    useState("");
+
   const previewUrlRef = useRef("");
   const submittingRef = useRef(false);
 
@@ -75,6 +83,72 @@ export default function Home() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (
+      !savedMemory ||
+      savedMemory.status !== "WAITING_FOR_UPLOAD" ||
+      customerUploadReady
+    ) {
+      return;
+    }
+
+    const supabase = createClient();
+
+    const markReady = () => {
+      setCustomerUploadReady(true);
+      setUploadNotification(
+        "✓ Customer voice message received. The QR code is now ready."
+      );
+    };
+
+    const channel = supabase
+      .channel(`memory-upload-${savedMemory.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "memories",
+          filter: `id=eq.${savedMemory.id}`,
+        },
+        (payload) => {
+          const updatedMemory = payload.new as {
+            status?: string;
+            audio_path?: string | null;
+          };
+
+          if (
+            updatedMemory.status === "READY" &&
+            updatedMemory.audio_path
+          ) {
+            markReady();
+          }
+        }
+      )
+      .subscribe();
+
+    const interval = window.setInterval(async () => {
+      const { data, error } = await supabase
+        .from("memories")
+        .select("status, audio_path")
+        .eq("id", savedMemory.id)
+        .maybeSingle();
+
+      if (
+        !error &&
+        data?.status === "READY" &&
+        data.audio_path
+      ) {
+        markReady();
+      }
+    }, 5000);
+
+    return () => {
+      window.clearInterval(interval);
+      void supabase.removeChannel(channel);
+    };
+  }, [savedMemory, customerUploadReady]);
 
   function clearAudio() {
     if (previewUrlRef.current) {
@@ -334,6 +408,9 @@ export default function Home() {
 
     setCustomerUploadUrl("");
     setCopied(false);
+
+    setCustomerUploadReady(false);
+    setUploadNotification("");
   }
 
   return (
@@ -749,20 +826,32 @@ export default function Home() {
                 </p>
               )}
 
+              {/* CUSTOMER UPLOAD NOTIFICATION */}
+              {uploadNotification && (
+                <div className="mt-5 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-emerald-900 shadow-sm">
+                  <p className="font-semibold">
+                    {uploadNotification}
+                  </p>
+                </div>
+              )}
+
               {/* SUCCESS */}
               {savedMemory ? (
                 <div className="mt-7">
-                  {savedMemory.status ===
-                  "READY" ? (
+                  {savedMemory.status === "READY" ||
+                  customerUploadReady ? (
                     <>
                       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900">
                         <p className="font-semibold">
-                          ✓ Memory saved successfully
+                          {customerUploadReady
+                            ? "✓ Customer voice message received"
+                            : "✓ Memory saved successfully"}
                         </p>
 
                         <p className="mt-2 text-sm">
-                          The voice message is ready and
-                          the QR code can now be printed.
+                          {customerUploadReady
+                            ? "The customer recording has arrived and the QR code is now available."
+                            : "The voice message is ready and the QR code can now be printed."}
                         </p>
                       </div>
 
@@ -911,22 +1000,37 @@ export default function Home() {
             </p>
 
             <div className="mt-10 rounded-xl bg-white p-4 text-slate-900">
-              {creationMode ===
-              "CUSTOMER" ? (
-                <div className="py-6">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-xl">
-                    ⏳
+              {creationMode === "CUSTOMER" ? (
+                customerUploadReady ? (
+                  <div className="py-6">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-xl">
+                      ✓
+                    </div>
+
+                    <p className="mt-3 font-medium">
+                      Customer recording received
+                    </p>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                      The QR code is now ready to print.
+                    </p>
                   </div>
+                ) : (
+                  <div className="py-6">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-xl">
+                      ⏳
+                    </div>
 
-                  <p className="mt-3 font-medium">
-                    Waiting for customer recording
-                  </p>
+                    <p className="mt-3 font-medium">
+                      Waiting for customer recording
+                    </p>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Their voice message will appear once
-                    they submit it.
-                  </p>
-                </div>
+                    <p className="mt-2 text-sm text-slate-500">
+                      Their voice message will appear once
+                      they submit it.
+                    </p>
+                  </div>
+                )
               ) : audioUrl ? (
                 <>
                   <p className="mb-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
