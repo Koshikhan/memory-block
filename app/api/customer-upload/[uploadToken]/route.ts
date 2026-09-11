@@ -30,6 +30,7 @@ export async function POST(
       .select(
         `
           id,
+          created_by,
           status,
           audio_path,
           upload_expires_at
@@ -39,11 +40,15 @@ export async function POST(
       .maybeSingle();
 
   if (memoryError) {
-    console.error("Upload lookup failed:", memoryError);
+    console.error(
+      "Upload lookup failed:",
+      memoryError
+    );
 
     return NextResponse.json(
       {
-        error: "Unable to verify this upload link.",
+        error:
+          "Unable to verify this upload link.",
       },
       {
         status: 500,
@@ -54,7 +59,8 @@ export async function POST(
   if (!memory) {
     return NextResponse.json(
       {
-        error: "This upload link is invalid.",
+        error:
+          "This upload link is invalid.",
       },
       {
         status: 404,
@@ -62,7 +68,27 @@ export async function POST(
     );
   }
 
-  if (memory.status === "READY" || memory.audio_path) {
+  if (!memory.created_by) {
+    console.error(
+      "Memory has no created_by value:",
+      memory.id
+    );
+
+    return NextResponse.json(
+      {
+        error:
+          "This order is missing its staff owner.",
+      },
+      {
+        status: 500,
+      }
+    );
+  }
+
+  if (
+    memory.status === "READY" ||
+    memory.audio_path
+  ) {
     return NextResponse.json(
       {
         error:
@@ -76,12 +102,14 @@ export async function POST(
 
   if (
     memory.upload_expires_at &&
-    new Date(memory.upload_expires_at).getTime() <
-      Date.now()
+    new Date(
+      memory.upload_expires_at
+    ).getTime() < Date.now()
   ) {
     return NextResponse.json(
       {
-        error: "This upload link has expired.",
+        error:
+          "This upload link has expired.",
       },
       {
         status: 410,
@@ -89,10 +117,14 @@ export async function POST(
     );
   }
 
-  if (memory.status !== "WAITING_FOR_UPLOAD") {
+  if (
+    memory.status !==
+    "WAITING_FOR_UPLOAD"
+  ) {
     return NextResponse.json(
       {
-        error: "This order is not accepting uploads.",
+        error:
+          "This order is not accepting uploads.",
       },
       {
         status: 409,
@@ -130,12 +162,15 @@ export async function POST(
         ? body.fileName.trim()
         : "";
 
-    const fileSize = Number(body.fileSize);
+    const fileSize = Number(
+      body.fileSize
+    );
 
     if (!fileName) {
       return NextResponse.json(
         {
-          error: "Recording filename is missing.",
+          error:
+            "Recording filename is missing.",
         },
         {
           status: 400,
@@ -183,8 +218,22 @@ export async function POST(
     const objectName =
       `${crypto.randomUUID()}.${extension}`;
 
+    /*
+     * IMPORTANT:
+     * The first folder must be the staff user's ID.
+     *
+     * This satisfies the existing
+     * audio_belongs_to_creator database constraint.
+     *
+     * Result:
+     *
+     * STAFF_USER_ID/
+     *   customer-uploads/
+     *     MEMORY_ID/
+     *       recording.m4a
+     */
     const path =
-      `customer-uploads/${memory.id}/${objectName}`;
+      `${memory.created_by}/customer-uploads/${memory.id}/${objectName}`;
 
     const {
       data: signedUpload,
@@ -223,7 +272,8 @@ export async function POST(
   /*
    * STEP 2
    * Customer has uploaded.
-   * Verify the file exists and mark the memory READY.
+   * Verify the file exists and mark
+   * the memory READY.
    */
   if (body.action === "complete") {
     const path =
@@ -232,8 +282,13 @@ export async function POST(
         : "";
 
     const expectedFolder =
-      `customer-uploads/${memory.id}`;
+      `${memory.created_by}/customer-uploads/${memory.id}`;
 
+    /*
+     * Prevent the browser from trying
+     * to complete another memory or
+     * reference another storage path.
+     */
     if (
       !path.startsWith(
         `${expectedFolder}/`
@@ -241,7 +296,8 @@ export async function POST(
     ) {
       return NextResponse.json(
         {
-          error: "Invalid recording path.",
+          error:
+            "Invalid recording path.",
         },
         {
           status: 400,
@@ -254,6 +310,23 @@ export async function POST(
         expectedFolder.length + 1
       );
 
+    if (!fileName) {
+      return NextResponse.json(
+        {
+          error:
+            "Recording filename is missing.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    /*
+     * Confirm the recording really
+     * exists in Supabase Storage
+     * before updating the database.
+     */
     const {
       data: storedFiles,
       error: storageError,
@@ -283,7 +356,8 @@ export async function POST(
 
     const fileExists =
       storedFiles?.some(
-        (file) => file.name === fileName
+        (file) =>
+          file.name === fileName
       ) ?? false;
 
     if (!fileExists) {
@@ -298,6 +372,14 @@ export async function POST(
       );
     }
 
+    /*
+     * Mark this memory as READY.
+     *
+     * The conditional filters also
+     * prevent a second request from
+     * replacing an already-completed
+     * recording.
+     */
     const {
       data: updatedMemory,
       error: updateError,
@@ -355,7 +437,8 @@ export async function POST(
 
   return NextResponse.json(
     {
-      error: "Unknown upload action.",
+      error:
+        "Unknown upload action.",
     },
     {
       status: 400,
