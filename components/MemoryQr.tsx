@@ -6,6 +6,9 @@ import QRCode from "qrcode";
 type Props = {
   publicCode: string;
   recipientName: string;
+  printed?: boolean;
+  markingPrinted?: boolean;
+  onPrinted?: () => void | Promise<void>;
 };
 
 function escapeHtml(value: string) {
@@ -20,6 +23,9 @@ function escapeHtml(value: string) {
 export default function MemoryQr({
   publicCode,
   recipientName,
+  printed = false,
+  markingPrinted = false,
+  onPrinted,
 }: Props) {
   const [qrUrl, setQrUrl] = useState("");
   const [memoryUrl, setMemoryUrl] = useState("");
@@ -83,7 +89,7 @@ export default function MemoryQr({
   }
 
   function printLabel() {
-    if (!qrUrl || !memoryUrl) return;
+    if (!qrUrl || !memoryUrl || markingPrinted) return;
 
     const printWindow = window.open(
       "",
@@ -256,6 +262,13 @@ export default function MemoryQr({
     `);
 
     printWindow.document.close();
+
+    // Safari does not reliably fire `afterprint` for popup windows.
+    // As soon as the print window has successfully opened, mark the
+    // order as printed. This keeps the staff dashboard in sync.
+    if (!printed && onPrinted) {
+      void onPrinted();
+    }
   }
 
   return (
@@ -270,7 +283,6 @@ export default function MemoryQr({
         </p>
       </div>
 
-      {/* Label preview */}
       <div className="mx-auto mt-6 max-w-xs">
         <div className="aspect-square rounded-2xl border-2 border-emerald-950 bg-white p-5 text-center shadow-sm">
           <p className="text-xs font-extrabold tracking-[0.25em] text-emerald-950">
@@ -305,7 +317,6 @@ export default function MemoryQr({
         </div>
       </div>
 
-      {/* URL */}
       <div className="mt-5 rounded-lg bg-slate-50 p-3">
         <p className="mb-1 text-xs font-medium text-slate-500">
           Recipient link
@@ -316,7 +327,6 @@ export default function MemoryQr({
         </p>
       </div>
 
-      {/* Actions */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <button
           type="button"
@@ -340,13 +350,23 @@ export default function MemoryQr({
       <button
         type="button"
         onClick={printLabel}
-        disabled={!qrUrl}
+        disabled={!qrUrl || markingPrinted}
         className="mt-3 w-full rounded-lg bg-emerald-900 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-50"
       >
-        Print Memory Block label
+        {markingPrinted
+          ? "Marking as printed…"
+          : printed
+            ? "Print label again"
+            : "Print Memory Block label"}
       </button>
 
-      <p className="mt-3 text-center text-xs text-slate-400">
+      {printed && (
+        <p className="mt-3 text-center text-xs font-medium text-emerald-700">
+          ✓ This order is marked as printed.
+        </p>
+      )}
+
+      <p className="mt-2 text-center text-xs text-slate-400">
         Print size: 70 × 70 mm
       </p>
     </div>

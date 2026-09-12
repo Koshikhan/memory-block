@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
 
-export type MemoryCreationMode = "STAFF" | "CUSTOMER";
+export type MemoryCreationMode =
+  | "STAFF"
+  | "CUSTOMER";
+
+export type MemorySource =
+  | "STAFF"
+  | "PRIVATE_LINK"
+  | "SHOP_QR";
 
 type BaseMemoryInput = {
   orderNumber: string;
@@ -16,9 +23,16 @@ type CreateMemoryInput = BaseMemoryInput & {
   audioFile: File;
 };
 
-type CreatePendingMemoryInput = BaseMemoryInput;
+type CreatePendingMemoryInput =
+  BaseMemoryInput;
 
-const AUDIO_TYPES: Record<string, string> = {
+const MAX_FILE_SIZE =
+  25 * 1024 * 1024;
+
+const AUDIO_TYPES: Record<
+  string,
+  string
+> = {
   mp3: "audio/mpeg",
   m4a: "audio/mp4",
   wav: "audio/wav",
@@ -27,21 +41,40 @@ const AUDIO_TYPES: Record<string, string> = {
   webm: "audio/webm",
 };
 
-function validateDetails(input: BaseMemoryInput) {
-  const orderNumber = input.orderNumber.trim();
-  const customerName = input.customerName.trim();
-  const customerEmail = input.customerEmail.trim();
-  const customerPhone = input.customerPhone.trim();
-  const sender = input.sender.trim();
-  const recipient = input.recipient.trim();
-  const message = input.message.trim();
+function validateDetails(
+  input: BaseMemoryInput
+) {
+  const orderNumber =
+    input.orderNumber.trim();
+
+  const customerName =
+    input.customerName.trim();
+
+  const customerEmail =
+    input.customerEmail.trim();
+
+  const customerPhone =
+    input.customerPhone.trim();
+
+  const sender =
+    input.sender.trim();
+
+  const recipient =
+    input.recipient.trim();
+
+  const message =
+    input.message.trim();
 
   if (!orderNumber) {
-    throw new Error("Enter the order number.");
+    throw new Error(
+      "Enter the order number."
+    );
   }
 
   if (!customerName) {
-    throw new Error("Enter the customer’s name.");
+    throw new Error(
+      "Enter the customer’s name."
+    );
   }
 
   if (!sender || !recipient) {
@@ -66,12 +99,20 @@ function validateDetails(input: BaseMemoryInput) {
     );
   }
 
-  if (customerEmail.length > 254) {
-    throw new Error("Email address is too long.");
+  if (
+    customerEmail.length > 254
+  ) {
+    throw new Error(
+      "Email address is too long."
+    );
   }
 
-  if (customerPhone.length > 30) {
-    throw new Error("Mobile number is too long.");
+  if (
+    customerPhone.length > 30
+  ) {
+    throw new Error(
+      "Mobile number is too long."
+    );
   }
 
   if (message.length > 500) {
@@ -105,14 +146,19 @@ async function getStaffUser() {
     );
   }
 
-  const { data: staff, error: staffError } = await supabase
+  const {
+    data: staff,
+    error: staffError,
+  } = await supabase
     .from("staff_members")
     .select("user_id")
     .eq("user_id", user.id)
     .maybeSingle();
 
   if (staffError) {
-    throw new Error(staffError.message);
+    throw new Error(
+      staffError.message
+    );
   }
 
   if (!staff) {
@@ -128,17 +174,25 @@ async function getStaffUser() {
 }
 
 /**
- * Staff uploads or records the audio immediately.
+ * Existing workflow:
+ *
+ * Staff creates the order and
+ * records/uploads the audio immediately.
+ *
+ * Source:
+ * STAFF
  */
 export async function createMemory(
   input: CreateMemoryInput
 ) {
-  const details = validateDetails(input);
+  const details =
+    validateDetails(input);
+
   const file = input.audioFile;
 
   if (
     file.size === 0 ||
-    file.size > 25 * 1024 * 1024
+    file.size > MAX_FILE_SIZE
   ) {
     throw new Error(
       "Choose a non-empty audio file up to 25 MB."
@@ -146,9 +200,13 @@ export async function createMemory(
   }
 
   const extension =
-    file.name.split(".").pop()?.toLowerCase() ?? "";
+    file.name
+      .split(".")
+      .pop()
+      ?.toLowerCase() ?? "";
 
-  const contentType = AUDIO_TYPES[extension];
+  const contentType =
+    AUDIO_TYPES[extension];
 
   if (!contentType) {
     throw new Error(
@@ -156,21 +214,38 @@ export async function createMemory(
     );
   }
 
-  const { supabase, user } = await getStaffUser();
+  const {
+    supabase,
+    user,
+  } = await getStaffUser();
 
-  const id = crypto.randomUUID();
-  const publicCode = crypto.randomUUID();
+  const id =
+    crypto.randomUUID();
 
+  const publicCode =
+    crypto.randomUUID();
+
+  /*
+   * Audio remains inside the
+   * staff user's storage folder.
+   *
+   * This is required by the existing
+   * audio_belongs_to_creator constraint.
+   */
   const audioPath =
     `${user.id}/${id}.${extension}`;
 
   const { error: uploadError } =
     await supabase.storage
       .from("voice-notes")
-      .upload(audioPath, file, {
-        contentType,
-        upsert: false,
-      });
+      .upload(
+        audioPath,
+        file,
+        {
+          contentType,
+          upsert: false,
+        }
+      );
 
   if (uploadError) {
     throw new Error(
@@ -178,32 +253,71 @@ export async function createMemory(
     );
   }
 
-  const { error: saveError } = await supabase
-    .from("memories")
-    .insert({
-      id,
-      public_code: publicCode,
-      created_by: user.id,
+  const { error: saveError } =
+    await supabase
+      .from("memories")
+      .insert({
+        id,
 
-      order_number: details.orderNumber,
-      customer_name: details.customerName,
-      customer_email:
-        details.customerEmail || null,
-      customer_phone:
-        details.customerPhone || null,
+        public_code:
+          publicCode,
 
-      sender_name: details.sender,
-      recipient_name: details.recipient,
-      message: details.message,
+        created_by:
+          user.id,
 
-      audio_path: audioPath,
+        order_number:
+          details.orderNumber,
 
-      status: "READY",
-      uploaded_at: new Date().toISOString(),
+        customer_name:
+          details.customerName,
 
-      upload_token: null,
-      upload_expires_at: null,
-    });
+        customer_email:
+          details.customerEmail ||
+          null,
+
+        customer_phone:
+          details.customerPhone ||
+          null,
+
+        sender_name:
+          details.sender,
+
+        recipient_name:
+          details.recipient,
+
+        message:
+          details.message,
+
+        audio_path:
+          audioPath,
+
+        status:
+          "READY",
+
+        uploaded_at:
+          new Date().toISOString(),
+
+        upload_token:
+          null,
+
+        upload_expires_at:
+          null,
+
+        /*
+         * Explicitly identify
+         * this as a staff-created
+         * recording.
+         */
+        upload_source:
+          "STAFF",
+
+        /*
+         * QR label has not yet
+         * been printed.
+         */
+        label_printed_at:
+          null,
+      });
 
   if (saveError) {
     throw new Error(
@@ -216,17 +330,28 @@ export async function createMemory(
     id,
     publicCode,
     audioPath,
-    status: "READY" as const,
+    uploadSource:
+      "STAFF" as const,
+    status:
+      "READY" as const,
   };
 }
 
 /**
- * Creates an order before the customer has uploaded audio.
+ * Existing workflow:
+ *
+ * Staff creates an order,
+ * then sends the customer a
+ * private upload link.
+ *
+ * Source:
+ * PRIVATE_LINK
  */
 export async function createPendingMemory(
   input: CreatePendingMemoryInput
 ) {
-  const details = validateDetails(input);
+  const details =
+    validateDetails(input);
 
   if (
     !details.customerEmail &&
@@ -237,45 +362,92 @@ export async function createPendingMemory(
     );
   }
 
-  const { supabase, user } = await getStaffUser();
+  const {
+    supabase,
+    user,
+  } = await getStaffUser();
 
-  const id = crypto.randomUUID();
-  const publicCode = crypto.randomUUID();
-  const uploadToken = crypto.randomUUID();
+  const id =
+    crypto.randomUUID();
 
-  const expiresAt = new Date();
+  const publicCode =
+    crypto.randomUUID();
 
-  // Customer has 14 days to submit the recording.
-  expiresAt.setDate(expiresAt.getDate() + 14);
+  const uploadToken =
+    crypto.randomUUID();
 
-  const { error: saveError } = await supabase
-    .from("memories")
-    .insert({
-      id,
-      public_code: publicCode,
-      upload_token: uploadToken,
+  const expiresAt =
+    new Date();
 
-      created_by: user.id,
+  /*
+   * Customer has 14 days
+   * to submit the recording.
+   */
+  expiresAt.setDate(
+    expiresAt.getDate() + 14
+  );
 
-      order_number: details.orderNumber,
-      customer_name: details.customerName,
-      customer_email:
-        details.customerEmail || null,
-      customer_phone:
-        details.customerPhone || null,
+  const { error: saveError } =
+    await supabase
+      .from("memories")
+      .insert({
+        id,
 
-      sender_name: details.sender,
-      recipient_name: details.recipient,
-      message: details.message,
+        public_code:
+          publicCode,
 
-      status: "WAITING_FOR_UPLOAD",
+        upload_token:
+          uploadToken,
 
-      audio_path: null,
-      uploaded_at: null,
+        created_by:
+          user.id,
 
-      upload_expires_at:
-        expiresAt.toISOString(),
-    });
+        order_number:
+          details.orderNumber,
+
+        customer_name:
+          details.customerName,
+
+        customer_email:
+          details.customerEmail ||
+          null,
+
+        customer_phone:
+          details.customerPhone ||
+          null,
+
+        sender_name:
+          details.sender,
+
+        recipient_name:
+          details.recipient,
+
+        message:
+          details.message,
+
+        status:
+          "WAITING_FOR_UPLOAD",
+
+        audio_path:
+          null,
+
+        uploaded_at:
+          null,
+
+        upload_expires_at:
+          expiresAt.toISOString(),
+
+        /*
+         * This order was created
+         * using the existing private
+         * customer upload-link flow.
+         */
+        upload_source:
+          "PRIVATE_LINK",
+
+        label_printed_at:
+          null,
+      });
 
   if (saveError) {
     throw new Error(
@@ -287,7 +459,14 @@ export async function createPendingMemory(
     id,
     publicCode,
     uploadToken,
-    uploadExpiresAt: expiresAt.toISOString(),
-    status: "WAITING_FOR_UPLOAD" as const,
+
+    uploadExpiresAt:
+      expiresAt.toISOString(),
+
+    uploadSource:
+      "PRIVATE_LINK" as const,
+
+    status:
+      "WAITING_FOR_UPLOAD" as const,
   };
 }

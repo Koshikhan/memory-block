@@ -38,6 +38,9 @@ type MemoryOrder = {
 
   created_at: string;
   uploaded_at: string | null;
+
+  upload_source: string | null;
+  label_printed_at: string | null;
 };
 
 export default function OrderPage() {
@@ -59,6 +62,9 @@ export default function OrderPage() {
     useState("");
 
   const [copied, setCopied] =
+    useState(false);
+
+  const [markingPrinted, setMarkingPrinted] =
     useState(false);
 
   useEffect(() => {
@@ -97,7 +103,9 @@ export default function OrderPage() {
           upload_expires_at,
           public_code,
           created_at,
-          uploaded_at
+          uploaded_at,
+          upload_source,
+          label_printed_at
         `)
         .eq("id", params.id)
         .eq("created_by", user.id)
@@ -196,6 +204,57 @@ export default function OrderPage() {
       "_blank",
       "noopener,noreferrer"
     );
+  }
+
+  async function markLabelPrinted() {
+    if (!order || order.label_printed_at || markingPrinted) {
+      return;
+    }
+
+    setMarkingPrinted(true);
+    setError("");
+
+    const supabase = createClient();
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      setMarkingPrinted(false);
+      router.replace("/login");
+      return;
+    }
+
+    const printedAt = new Date().toISOString();
+
+    const { error: updateError } = await supabase
+      .from("memories")
+      .update({
+        label_printed_at: printedAt,
+      })
+      .eq("id", order.id)
+      .eq("created_by", user.id);
+
+    if (updateError) {
+      setError(
+        `The label print opened, but the order could not be marked as printed: ${updateError.message}`
+      );
+      setMarkingPrinted(false);
+      return;
+    }
+
+    setOrder((current) =>
+      current
+        ? {
+            ...current,
+            label_printed_at: printedAt,
+          }
+        : current
+    );
+
+    setMarkingPrinted(false);
   }
 
   if (loading) {
@@ -369,6 +428,44 @@ export default function OrderPage() {
                   )}
                 </dd>
               </div>
+
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Source
+                </dt>
+
+                <dd className="mt-1">
+                  {order.upload_source === "SHOP_QR"
+                    ? "In-store QR"
+                    : order.upload_source === "PRIVATE_LINK"
+                      ? "Private link"
+                      : order.upload_source === "STAFF"
+                        ? "Staff"
+                        : "Unknown"}
+                </dd>
+              </div>
+
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Label
+                </dt>
+
+                <dd className="mt-1">
+                  {order.label_printed_at ? (
+                    <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                      Printed
+                    </span>
+                  ) : ready ? (
+                    <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
+                      To print
+                    </span>
+                  ) : (
+                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                      Not ready
+                    </span>
+                  )}
+                </dd>
+              </div>
             </dl>
           </section>
 
@@ -454,12 +551,43 @@ export default function OrderPage() {
                   Open recipient page
                 </a>
 
+                {order.label_printed_at && (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
+                    <p className="font-semibold text-emerald-900">
+                      ✓ Label printed
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {new Intl.DateTimeFormat(
+                        "en-GB",
+                        {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        }
+                      ).format(
+                        new Date(
+                          order.label_printed_at
+                        )
+                      )}
+                    </p>
+                  </div>
+                )}
+
                 <MemoryQr
                   publicCode={
                     order.public_code
                   }
                   recipientName={
                     order.recipient_name
+                  }
+                  printed={
+                    !!order.label_printed_at
+                  }
+                  markingPrinted={
+                    markingPrinted
+                  }
+                  onPrinted={
+                    markLabelPrinted
                   }
                 />
               </>

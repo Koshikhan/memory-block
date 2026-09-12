@@ -20,22 +20,20 @@ type MemoryOrder = {
   public_code: string;
   created_at: string;
   uploaded_at: string | null;
+  upload_source: string | null;
+  label_printed_at: string | null;
 };
 
 function statusStyles(status: string) {
   switch (status) {
     case "READY":
       return "bg-emerald-100 text-emerald-800";
-
     case "WAITING_FOR_UPLOAD":
       return "bg-amber-100 text-amber-800";
-
     case "CANCELLED":
       return "bg-red-100 text-red-800";
-
     case "ARCHIVED":
       return "bg-slate-200 text-slate-700";
-
     default:
       return "bg-slate-100 text-slate-700";
   }
@@ -45,19 +43,62 @@ function statusLabel(status: string) {
   switch (status) {
     case "READY":
       return "Ready";
-
     case "WAITING_FOR_UPLOAD":
       return "Waiting for upload";
-
     case "CANCELLED":
       return "Cancelled";
-
     case "ARCHIVED":
       return "Archived";
-
     default:
       return status;
   }
+}
+
+function sourceLabel(source: string | null) {
+  switch (source) {
+    case "STAFF":
+      return "Staff";
+    case "PRIVATE_LINK":
+      return "Private link";
+    case "SHOP_QR":
+      return "In-store QR";
+    default:
+      return "Unknown";
+  }
+}
+
+function sourceStyles(source: string | null) {
+  switch (source) {
+    case "SHOP_QR":
+      return "bg-violet-100 text-violet-800";
+    case "PRIVATE_LINK":
+      return "bg-blue-100 text-blue-800";
+    case "STAFF":
+      return "bg-slate-100 text-slate-700";
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
+function labelStatus(order: MemoryOrder) {
+  if (order.status !== "READY" || !order.audio_path) {
+    return {
+      label: "Not ready",
+      classes: "bg-slate-100 text-slate-600",
+    };
+  }
+
+  if (order.label_printed_at) {
+    return {
+      label: "Printed",
+      classes: "bg-emerald-100 text-emerald-800",
+    };
+  }
+
+  return {
+    label: "To print",
+    classes: "bg-orange-100 text-orange-800",
+  };
 }
 
 export default function OrdersPage() {
@@ -65,72 +106,117 @@ export default function OrdersPage() {
 
   const [orders, setOrders] = useState<MemoryOrder[]>([]);
   const [search, setSearch] = useState("");
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadOrders() {
+    const supabase = createClient();
+
+    let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function startOrders() {
       setLoading(true);
       setError("");
-
-      const supabase = createClient();
 
       const {
         data: { user },
         error: authError,
       } = await supabase.auth.getUser();
 
+      if (!active) return;
+
       if (authError || !user) {
         router.replace("/login");
         return;
       }
 
-      const { data, error } = await supabase
-        .from("memories")
-        .select(`
-          id,
-          order_number,
-          customer_name,
-          customer_email,
-          customer_phone,
-          sender_name,
-          recipient_name,
-          status,
-          audio_path,
-          upload_token,
-          public_code,
-          created_at,
-          uploaded_at
-        `)
-        .eq("created_by", user.id)
-        .order("created_at", {
-          ascending: false,
-        });
+      const userId = user.id;
 
-      if (error) {
-        setError(error.message);
+      async function loadOrders(showLoading = false) {
+        if (showLoading) {
+          setLoading(true);
+        }
+
+        const { data, error } = await supabase
+          .from("memories")
+          .select(`
+            id,
+            order_number,
+            customer_name,
+            customer_email,
+            customer_phone,
+            sender_name,
+            recipient_name,
+            status,
+            audio_path,
+            upload_token,
+            public_code,
+            created_at,
+            uploaded_at,
+            upload_source,
+            label_printed_at
+          `)
+          .eq("created_by", userId)
+          .order("created_at", {
+            ascending: false,
+          });
+
+        if (!active) return;
+
+        if (error) {
+          setError(error.message);
+          setLoading(false);
+          return;
+        }
+
+        setOrders(data ?? []);
+        setError("");
         setLoading(false);
-        return;
       }
 
-      setOrders(data ?? []);
-      setLoading(false);
+      await loadOrders();
+
+      if (!active) return;
+
+      channel = supabase
+        .channel(`orders-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "memories",
+            filter: `created_by=eq.${userId}`,
+          },
+          () => {
+            void loadOrders();
+          }
+        )
+        .subscribe();
     }
 
-    loadOrders();
+    void startOrders();
+
+    return () => {
+      active = false;
+
+      if (channel) {
+        void supabase.removeChannel(channel);
+      }
+    };
   }, [router]);
 
   const filteredOrders = useMemo(() => {
-    const term = search
-      .trim()
-      .toLowerCase();
+    const term = search.trim().toLowerCase();
 
     if (!term) {
       return orders;
     }
 
     return orders.filter((order) => {
+      const label = labelStatus(order).label;
+
       return [
         order.order_number,
         order.customer_name,
@@ -139,6 +225,8 @@ export default function OrdersPage() {
         order.sender_name,
         order.recipient_name,
         order.status,
+        sourceLabel(order.upload_source),
+        label,
       ]
         .filter(Boolean)
         .some((value) =>
@@ -150,14 +238,18 @@ export default function OrdersPage() {
   }, [orders, search]);
 
   const waitingCount = orders.filter(
-    (order) =>
-      order.status ===
-      "WAITING_FOR_UPLOAD"
+    (order) => order.status === "WAITING_FOR_UPLOAD"
   ).length;
 
   const readyCount = orders.filter(
+    (order) => order.status === "READY"
+  ).length;
+
+  const readyToPrintCount = orders.filter(
     (order) =>
-      order.status === "READY"
+      order.status === "READY" &&
+      !!order.audio_path &&
+      !order.label_printed_at
   ).length;
 
   return (
@@ -206,13 +298,11 @@ export default function OrdersPage() {
           </Link>
         </div>
 
-        {/* Summary */}
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-slate-200 bg-white p-5">
             <p className="text-sm text-slate-500">
               Total orders
             </p>
-
             <p className="mt-2 text-3xl font-bold">
               {orders.length}
             </p>
@@ -222,7 +312,6 @@ export default function OrdersPage() {
             <p className="text-sm text-amber-700">
               Waiting for upload
             </p>
-
             <p className="mt-2 text-3xl font-bold text-amber-900">
               {waitingCount}
             </p>
@@ -232,14 +321,21 @@ export default function OrdersPage() {
             <p className="text-sm text-emerald-700">
               Ready
             </p>
-
             <p className="mt-2 text-3xl font-bold text-emerald-900">
               {readyCount}
             </p>
           </div>
+
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-5">
+            <p className="text-sm text-orange-700">
+              Ready to print
+            </p>
+            <p className="mt-2 text-3xl font-bold text-orange-900">
+              {readyToPrintCount}
+            </p>
+          </div>
         </div>
 
-        {/* Search */}
         <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
           <label className="block text-sm font-semibold">
             Search orders
@@ -249,11 +345,9 @@ export default function OrdersPage() {
             type="search"
             value={search}
             onChange={(event) =>
-              setSearch(
-                event.target.value
-              )
+              setSearch(event.target.value)
             }
-            placeholder="Order number, customer, recipient, email or mobile..."
+            placeholder="Order, customer, recipient, source, status or label..."
             className="mt-3 w-full rounded-lg border border-slate-300 px-4 py-3 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
@@ -281,38 +375,26 @@ export default function OrdersPage() {
         ) : (
           <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left">
+              <table className="w-full min-w-[1180px] text-left">
                 <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-5 py-4">
-                      Order
-                    </th>
-
-                    <th className="px-5 py-4">
-                      Customer
-                    </th>
-
-                    <th className="px-5 py-4">
-                      Recipient
-                    </th>
-
-                    <th className="px-5 py-4">
-                      Status
-                    </th>
-
-                    <th className="px-5 py-4">
-                      Created
-                    </th>
-
-                    <th className="px-5 py-4 text-right">
-                      Action
-                    </th>
+                    <th className="px-5 py-4">Order</th>
+                    <th className="px-5 py-4">Customer</th>
+                    <th className="px-5 py-4">Recipient</th>
+                    <th className="px-5 py-4">Source</th>
+                    <th className="px-5 py-4">Status</th>
+                    <th className="px-5 py-4">Label</th>
+                    <th className="px-5 py-4">Created</th>
+                    <th className="px-5 py-4 text-right">Action</th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-slate-100">
-                  {filteredOrders.map(
-                    (order) => (
+                  {filteredOrders.map((order) => {
+                    const printStatus =
+                      labelStatus(order);
+
+                    return (
                       <tr
                         key={order.id}
                         className="hover:bg-slate-50"
@@ -324,17 +406,13 @@ export default function OrdersPage() {
                           </p>
 
                           <p className="mt-1 text-xs text-slate-400">
-                            {order.id.slice(
-                              0,
-                              8
-                            )}
+                            {order.id.slice(0, 8)}
                           </p>
                         </td>
 
                         <td className="px-5 py-4">
                           <p className="font-medium">
-                            {order.customer_name ||
-                              "—"}
+                            {order.customer_name || "—"}
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
@@ -346,17 +424,24 @@ export default function OrdersPage() {
 
                         <td className="px-5 py-4">
                           <p className="font-medium">
-                            {
-                              order.recipient_name
-                            }
+                            {order.recipient_name}
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            From{" "}
-                            {
-                              order.sender_name
-                            }
+                            From {order.sender_name}
                           </p>
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${sourceStyles(
+                              order.upload_source
+                            )}`}
+                          >
+                            {sourceLabel(
+                              order.upload_source
+                            )}
+                          </span>
                         </td>
 
                         <td className="px-5 py-4">
@@ -371,6 +456,14 @@ export default function OrdersPage() {
                           </span>
                         </td>
 
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${printStatus.classes}`}
+                          >
+                            {printStatus.label}
+                          </span>
+                        </td>
+
                         <td className="px-5 py-4 text-sm text-slate-600">
                           {new Intl.DateTimeFormat(
                             "en-GB",
@@ -379,13 +472,10 @@ export default function OrdersPage() {
                               month: "short",
                               year: "numeric",
                               hour: "2-digit",
-                              minute:
-                                "2-digit",
+                              minute: "2-digit",
                             }
                           ).format(
-                            new Date(
-                              order.created_at
-                            )
+                            new Date(order.created_at)
                           )}
                         </td>
 
@@ -398,8 +488,8 @@ export default function OrdersPage() {
                           </Link>
                         </td>
                       </tr>
-                    )
-                  )}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
