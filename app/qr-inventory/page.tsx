@@ -6,27 +6,26 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import StaffHeader from "@/components/layout/StaffHeader";
+import type {
+  QrBatch,
+  QrCodeRecord,
+  QrStatus,
+} from "@/types/qr";
 
-type QrBatch = {
-  id: string;
-  batch_number: number;
-  requested_quantity: number;
-  created_at: string;
-};
+type QrCode = Pick<
+  QrCodeRecord,
+  | "id"
+  | "batch_id"
+  | "code"
+  | "status"
+  | "memory_id"
+  | "created_at"
+  | "assigned_at"
+  | "activated_at"
+  | "voided_at"
+>;
 
-type QrCode = {
-  id: string;
-  batch_id: string;
-  code: string;
-  status: "AVAILABLE" | "ASSIGNED" | "ACTIVE" | "VOID";
-  memory_id: string | null;
-  created_at: string;
-  assigned_at: string | null;
-  activated_at: string | null;
-  voided_at: string | null;
-};
-
-function statusPill(status: QrCode["status"]) {
+function statusPill(status: QrStatus) {
   switch (status) {
     case "AVAILABLE":
       return "bg-emerald-100 text-emerald-800";

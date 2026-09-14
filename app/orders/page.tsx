@@ -6,24 +6,26 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import StaffHeader from "@/components/layout/StaffHeader";
+import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
 
-type MemoryOrder = {
-  id: string;
-  order_number: string | null;
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-  sender_name: string;
-  recipient_name: string;
-  status: string;
-  audio_path: string | null;
-  upload_token: string | null;
-  public_code: string;
-  created_at: string;
-  uploaded_at: string | null;
-  upload_source: string | null;
-  label_printed_at: string | null;
-};
+type MemoryOrder = Pick<
+  MemoryOrderRecord,
+  | "id"
+  | "order_number"
+  | "customer_name"
+  | "customer_email"
+  | "customer_phone"
+  | "sender_name"
+  | "recipient_name"
+  | "status"
+  | "audio_path"
+  | "upload_token"
+  | "public_code"
+  | "created_at"
+  | "uploaded_at"
+  | "upload_source"
+  | "label_printed_at"
+>;
 
 function statusStyles(status: string) {
   switch (status) {
