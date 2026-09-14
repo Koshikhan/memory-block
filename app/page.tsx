@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import VoiceRecorder from "@/components/VoiceRecorder";
 import MemoryQr from "@/components/MemoryQr";
+import StaffHeader from "@/components/layout/StaffHeader";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
@@ -415,37 +416,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-     {/* Header */}
-<header className="border-b border-slate-200 bg-white">
-  <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-    <Link
-      href="/"
-      className="text-xl font-bold tracking-widest text-emerald-900"
-    >
-      MEMORY BLOCK
-    </Link>
-
-    <div className="flex items-center gap-3">
-      <Link
-        href="/orders"
-        className="rounded-lg border border-emerald-900 px-4 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
-      >
-        Orders
-      </Link>
-
-      <Link
-        href="/qr-inventory"
-        className="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-900"
-      >
-        QR Inventory
-      </Link>
-
-      <span className="hidden text-sm text-slate-500 lg:inline">
-        Staff workspace
-      </span>
-    </div>
-  </div>
-</header>
+      <StaffHeader
+        current="home"
+        maxWidth="6xl"
+      />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="text-3xl font-bold tracking-tight">
           Create a memory
