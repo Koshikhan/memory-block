@@ -9,7 +9,7 @@ import {
 } from "@/lib/memories";
 
 import { createClient } from "@/lib/supabase/client";
-import { MAX_AUDIO_FILE_SIZE } from "@/lib/constants";
+import { validateAudioFile } from "@/lib/audio";
 import type { CreationMode } from "@/types/memory";
 
 import StaffHeader from "@/components/layout/StaffHeader";
@@ -176,33 +176,11 @@ export default function Home() {
 
     setError("");
 
-    if (
-      !/\.(mp3|m4a|wav|ogg|opus|webm)$/i.test(
-        file.name
-      )
-    ) {
-      setError(
-        "Please choose an MP3, M4A, WAV, OGG, OPUS or WebM file."
-      );
+    const validationError =
+      validateAudioFile(file);
 
-      return;
-    }
-
-    if (file.size === 0) {
-      setError(
-        "This file is empty. Please choose another recording."
-      );
-
-      return;
-    }
-
-    if (
-      file.size > MAX_AUDIO_FILE_SIZE
-    ) {
-      setError(
-        "Please choose a recording up to 25 MB."
-      );
-
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
