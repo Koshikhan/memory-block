@@ -6,7 +6,11 @@ import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
 import StaffHeader from "@/components/layout/StaffHeader";
-import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
+import type {
+  MemoryOrder as MemoryOrderRecord,
+  MemorySource,
+  MemoryStatus,
+} from "@/types/memory";
 
 type MemoryOrder = Pick<
   MemoryOrderRecord,
@@ -27,7 +31,7 @@ type MemoryOrder = Pick<
   | "label_printed_at"
 >;
 
-function statusStyles(status: string) {
+function statusStyles(status: MemoryStatus) {
   switch (status) {
     case "READY":
       return "bg-emerald-100 text-emerald-800";
@@ -42,7 +46,7 @@ function statusStyles(status: string) {
   }
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: MemoryStatus) {
   switch (status) {
     case "READY":
       return "Ready";
@@ -57,7 +61,7 @@ function statusLabel(status: string) {
   }
 }
 
-function sourceLabel(source: string | null) {
+function sourceLabel(source: MemorySource | null) {
   switch (source) {
     case "STAFF":
       return "Staff";
@@ -72,7 +76,7 @@ function sourceLabel(source: string | null) {
   }
 }
 
-function sourceStyles(source: string | null) {
+function sourceStyles(source: MemorySource | null) {
   switch (source) {
     case "SHOP_QR":
       return "bg-violet-100 text-violet-800";

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { QR_BATCH_SIZES } from "@/lib/constants";
 import StaffHeader from "@/components/layout/StaffHeader";
 import type {
   QrBatch,
@@ -24,6 +25,8 @@ type QrCode = Pick<
   | "activated_at"
   | "voided_at"
 >;
+
+type QrBatchSize = (typeof QR_BATCH_SIZES)[number];
 
 function statusPill(status: QrStatus) {
   switch (status) {
@@ -45,7 +48,7 @@ export default function QrInventoryPage() {
   const [codes, setCodes] = useState<QrCode[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<number | null>(null);
+  const [generating, setGenerating] = useState<QrBatchSize | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -120,7 +123,7 @@ export default function QrInventoryPage() {
     void loadInventory();
   }, [loadInventory]);
 
-  async function generateBatch(quantity: 20 | 50 | 100) {
+  async function generateBatch(quantity: QrBatchSize) {
     if (generating) return;
 
     setGenerating(quantity);
@@ -260,14 +263,12 @@ export default function QrInventoryPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              {[20, 50, 100].map((quantity) => (
+              {QR_BATCH_SIZES.map((quantity) => (
                 <button
                   key={quantity}
                   type="button"
                   onClick={() =>
-                    void generateBatch(
-                      quantity as 20 | 50 | 100
-                    )
+                    void generateBatch(quantity)
                   }
                   disabled={generating !== null}
                   className="rounded-lg bg-emerald-950 px-5 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
