@@ -9,6 +9,7 @@ import {
 } from "@/lib/memories";
 
 import { createClient } from "@/lib/supabase/client";
+import type { CreationMode } from "@/types/memory";
 
 import VoiceRecorder from "@/components/VoiceRecorder";
 import MemoryQr from "@/components/MemoryQr";
@@ -17,10 +18,10 @@ import PremadeQrPanel from "@/components/memory/PremadeQrPanel";
 import RecipientPreview from "@/components/memory/RecipientPreview";
 import OrderDetailsFields from "@/components/memory/OrderDetailsFields";
 import MemoryDetailsFields from "@/components/memory/MemoryDetailsFields";
+import CreationMethodSelector from "@/components/memory/CreationMethodSelector";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
-type CreationMode = "STAFF" | "CUSTOMER";
 
 type StaffMemory = Awaited<ReturnType<typeof createMemory>>;
 
@@ -465,100 +466,12 @@ export default function Home() {
                 onMessageChange={setMessage}
               />
 
-              {/* CREATION METHOD */}
               {!savedMemory && (
-                <fieldset
+                <CreationMethodSelector
+                  creationMode={creationMode}
                   disabled={saving}
-                  className="mt-8 border-t border-slate-200 pt-8"
-                >
-                  <legend className="text-lg font-semibold">
-                    How will the voice message be added?
-                  </legend>
-
-                  <div className="mt-5 grid gap-3">
-                    {/* Staff */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        changeCreationMode(
-                          "STAFF"
-                        )
-                      }
-                      className={`rounded-xl border-2 p-4 text-left transition ${
-                        creationMode === "STAFF"
-                          ? "border-emerald-900 bg-emerald-50"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        <div
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            creationMode === "STAFF"
-                              ? "border-emerald-900"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {creationMode ===
-                            "STAFF" && (
-                            <div className="h-2.5 w-2.5 rounded-full bg-emerald-900" />
-                          )}
-                        </div>
-
-                        <div>
-                          <p className="font-semibold">
-                            Add recording now
-                          </p>
-
-                          <p className="mt-1 text-sm text-slate-500">
-                            Staff records or uploads the
-                            customer&apos;s voice message.
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-
-                    {/* Customer */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        changeCreationMode(
-                          "CUSTOMER"
-                        )
-                      }
-                      className={`rounded-xl border-2 p-4 text-left transition ${
-                        creationMode === "CUSTOMER"
-                          ? "border-emerald-900 bg-emerald-50"
-                          : "border-slate-200 hover:border-slate-300"
-                      }`}
-                    >
-                      <div className="flex gap-3">
-                        <div
-                          className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
-                            creationMode === "CUSTOMER"
-                              ? "border-emerald-900"
-                              : "border-slate-300"
-                          }`}
-                        >
-                          {creationMode ===
-                            "CUSTOMER" && (
-                            <div className="h-2.5 w-2.5 rounded-full bg-emerald-900" />
-                          )}
-                        </div>
-
-                        <div>
-                          <p className="font-semibold">
-                            Customer uploads later
-                          </p>
-
-                          <p className="mt-1 text-sm text-slate-500">
-                            Generate a private link for the
-                            customer to use on their phone.
-                          </p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </fieldset>
+                  onChange={changeCreationMode}
+                />
               )}
 
               {/* STAFF AUDIO */}
