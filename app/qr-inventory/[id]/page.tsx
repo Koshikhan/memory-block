@@ -6,28 +6,28 @@ import { useParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCTION_APP_URL } from "@/lib/constants";
+import type {
+  QrBatch,
+  QrCodeRecord,
+  QrStatus,
+} from "@/types/qr";
 
-type QrBatch = {
-  id: string;
-  batch_number: number;
-  requested_quantity: number;
-  created_at: string;
-};
-
-type QrCode = {
-  id: string;
-  code: string;
-  status: "AVAILABLE" | "ASSIGNED" | "ACTIVE" | "VOID";
-  memory_id: string | null;
-  created_at: string;
-};
+type QrCode = Pick<
+  QrCodeRecord,
+  | "id"
+  | "code"
+  | "status"
+  | "memory_id"
+  | "created_at"
+>;
 
 type RenderedQr = QrCode & {
   qrUrl: string;
   publicUrl: string;
 };
 
-function statusStyles(status: QrCode["status"]) {
+function statusStyles(status: QrStatus) {
   switch (status) {
     case "AVAILABLE":
       return "bg-emerald-100 text-emerald-800";
@@ -151,7 +151,7 @@ export default function QrBatchPage() {
         // Do not use localhost or a LAN IP here, otherwise printed QR codes
         // would stop working outside your development network.
         const baseUrl =
-          "https://memoryblockapp.vercel.app";
+          PRODUCTION_APP_URL;
 
         const rendered = await Promise.all(
           codes.map(async (item) => {

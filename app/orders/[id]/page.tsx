@@ -13,43 +13,44 @@ import {
 } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCTION_APP_URL } from "@/lib/constants";
 import MemoryQr from "@/components/MemoryQr";
+import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
+import type { QrCodeRecord, QrStatus } from "@/types/qr";
 
-type MemoryOrder = {
-  id: string;
-  order_number: string | null;
+type MemoryOrder = Pick<
+  MemoryOrderRecord,
+  | "id"
+  | "order_number"
+  | "customer_name"
+  | "customer_email"
+  | "customer_phone"
+  | "sender_name"
+  | "recipient_name"
+  | "message"
+  | "status"
+  | "audio_path"
+  | "upload_token"
+  | "upload_expires_at"
+  | "public_code"
+  | "created_at"
+  | "uploaded_at"
+  | "upload_source"
+  | "label_printed_at"
+>;
 
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-
-  sender_name: string;
-  recipient_name: string;
-  message: string | null;
-
-  status: string;
-
-  audio_path: string | null;
-
-  upload_token: string | null;
-  upload_expires_at: string | null;
-
-  public_code: string;
-
-  created_at: string;
-  uploaded_at: string | null;
-
-  upload_source: string | null;
-  label_printed_at: string | null;
-};
-
-type AssignedQr = {
-  id: string;
-  code: string;
-  status: "ASSIGNED" | "ACTIVE";
+type AssignedQr = Pick<
+  QrCodeRecord,
+  | "id"
+  | "code"
+  | "assigned_at"
+  | "activated_at"
+> & {
+  status: Extract<
+    QrStatus,
+    "ASSIGNED" | "ACTIVE"
+  >;
   memory_id: string;
-  assigned_at: string | null;
-  activated_at: string | null;
 };
 
 export default function OrderPage() {
@@ -420,7 +421,7 @@ export default function OrderPage() {
       return "";
     }
 
-    return `https://memoryblockapp.vercel.app/q/${assignedQr.code}`;
+    return `${PRODUCTION_APP_URL}/q/${assignedQr.code}`;
   }
 
   if (loading) {
