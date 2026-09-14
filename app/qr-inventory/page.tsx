@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import StaffHeader from "@/components/layout/StaffHeader";
 
 type QrBatch = {
   id: string;
@@ -217,29 +218,10 @@ export default function QrInventoryPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-widest text-emerald-900"
-          >
-            MEMORY BLOCK
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/orders"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Orders
-            </Link>
-
-            <span className="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white">
-              QR Inventory
-            </span>
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        current="qr-inventory"
+        maxWidth="7xl"
+      />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
