@@ -15,6 +15,7 @@ import MemoryQr from "@/components/MemoryQr";
 import StaffHeader from "@/components/layout/StaffHeader";
 import PremadeQrPanel from "@/components/memory/PremadeQrPanel";
 import RecipientPreview from "@/components/memory/RecipientPreview";
+import OrderDetailsFields from "@/components/memory/OrderDetailsFields";
 
 const MAX_FILE_SIZE = 25 * 1024 * 1024;
 
@@ -441,94 +442,17 @@ export default function Home() {
               onSubmit={handleSave}
               aria-busy={saving}
             >
-              {/* ORDER DETAILS */}
-              <fieldset
-                disabled={locked}
-                className="min-w-0"
-              >
-                <legend className="text-xl font-semibold">
-                  Order details
-                </legend>
-
-                <div className="mt-6 grid gap-5 sm:grid-cols-2">
-                  <label className="grid gap-2 text-sm font-medium">
-                    Order number
-
-                    <input
-                      type="text"
-                      required
-                      value={orderNumber}
-                      onChange={(event) =>
-                        setOrderNumber(
-                          event.target.value
-                        )
-                      }
-                      placeholder="e.g. ILF-1058"
-                      maxLength={80}
-                      className="rounded-lg border border-slate-300 px-4 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
-                    />
-                  </label>
-
-                  <label className="grid gap-2 text-sm font-medium">
-                    Customer name
-
-                    <input
-                      type="text"
-                      required
-                      value={customerName}
-                      onChange={(event) =>
-                        setCustomerName(
-                          event.target.value
-                        )
-                      }
-                      placeholder="Customer name"
-                      maxLength={80}
-                      className="rounded-lg border border-slate-300 px-4 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
-                    />
-                  </label>
-                </div>
-
-                <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                  <label className="grid gap-2 text-sm font-medium">
-                    Email
-
-                    <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(event) =>
-                        setCustomerEmail(
-                          event.target.value
-                        )
-                      }
-                      placeholder="customer@email.com"
-                      maxLength={254}
-                      className="rounded-lg border border-slate-300 px-4 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
-                    />
-                  </label>
-
-                  <label className="grid gap-2 text-sm font-medium">
-                    Mobile
-
-                    <input
-                      type="tel"
-                      value={customerPhone}
-                      onChange={(event) =>
-                        setCustomerPhone(
-                          event.target.value
-                        )
-                      }
-                      placeholder="07700 123456"
-                      maxLength={30}
-                      className="rounded-lg border border-slate-300 px-4 py-3 text-base outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-50"
-                    />
-                  </label>
-                </div>
-
-                <p className="mt-3 text-xs text-slate-500">
-                  Email or mobile is required if the
-                  customer will upload later.
-                </p>
-              </fieldset>
+              <OrderDetailsFields
+                locked={locked}
+                orderNumber={orderNumber}
+                customerName={customerName}
+                customerEmail={customerEmail}
+                customerPhone={customerPhone}
+                onOrderNumberChange={setOrderNumber}
+                onCustomerNameChange={setCustomerName}
+                onCustomerEmailChange={setCustomerEmail}
+                onCustomerPhoneChange={setCustomerPhone}
+              />
 
               {/* MEMORY DETAILS */}
               <fieldset
