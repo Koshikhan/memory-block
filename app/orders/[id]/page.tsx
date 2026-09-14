@@ -43,6 +43,15 @@ type MemoryOrder = {
   label_printed_at: string | null;
 };
 
+type AssignedQr = {
+  id: string;
+  code: string;
+  status: "ASSIGNED" | "ACTIVE";
+  memory_id: string;
+  assigned_at: string | null;
+  activated_at: string | null;
+};
+
 export default function OrderPage() {
   const params = useParams<{
     id: string;
@@ -67,6 +76,21 @@ export default function OrderPage() {
   const [markingPrinted, setMarkingPrinted] =
     useState(false);
 
+  const [assignedQr, setAssignedQr] =
+    useState<AssignedQr | null>(null);
+
+  const [qrCodeInput, setQrCodeInput] =
+    useState("");
+
+  const [qrBusy, setQrBusy] =
+    useState(false);
+
+  const [qrError, setQrError] =
+    useState("");
+
+  const [qrSuccess, setQrSuccess] =
+    useState("");
+
   useEffect(() => {
     async function loadOrder() {
       const supabase =
@@ -83,36 +107,68 @@ export default function OrderPage() {
         return;
       }
 
-      const {
-        data,
-        error,
-      } = await supabase
-        .from("memories")
-        .select(`
-          id,
-          order_number,
-          customer_name,
-          customer_email,
-          customer_phone,
-          sender_name,
-          recipient_name,
-          message,
-          status,
-          audio_path,
-          upload_token,
-          upload_expires_at,
-          public_code,
-          created_at,
-          uploaded_at,
-          upload_source,
-          label_printed_at
-        `)
-        .eq("id", params.id)
-        .eq("created_by", user.id)
-        .maybeSingle();
+      const [
+        {
+          data,
+          error,
+        },
+        {
+          data: assignedQrData,
+          error: assignedQrError,
+        },
+      ] = await Promise.all([
+        supabase
+          .from("memories")
+          .select(`
+            id,
+            order_number,
+            customer_name,
+            customer_email,
+            customer_phone,
+            sender_name,
+            recipient_name,
+            message,
+            status,
+            audio_path,
+            upload_token,
+            upload_expires_at,
+            public_code,
+            created_at,
+            uploaded_at,
+            upload_source,
+            label_printed_at
+          `)
+          .eq("id", params.id)
+          .eq("created_by", user.id)
+          .maybeSingle(),
+
+        supabase
+          .from("qr_codes")
+          .select(`
+            id,
+            code,
+            status,
+            memory_id,
+            assigned_at,
+            activated_at
+          `)
+          .eq("created_by", user.id)
+          .eq("memory_id", params.id)
+          .in("status", [
+            "ASSIGNED",
+            "ACTIVE",
+          ])
+          .maybeSingle(),
+      ]);
 
       if (error) {
         setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      if (assignedQrError) {
+        setError(assignedQrError.message);
         setLoading(false);
         return;
       }
@@ -127,6 +183,17 @@ export default function OrderPage() {
       }
 
       setOrder(data);
+
+      if (assignedQrData) {
+        setAssignedQr(
+          assignedQrData as AssignedQr
+        );
+
+        setQrCodeInput(
+          assignedQrData.code
+        );
+      }
+
       setLoading(false);
     }
 
@@ -255,6 +322,105 @@ export default function OrderPage() {
     );
 
     setMarkingPrinted(false);
+  }
+
+  async function runQrAction(
+    action: "assign" | "activate",
+    code: string
+  ) {
+    if (!order || qrBusy) {
+      return;
+    }
+
+    const normalizedCode =
+      code.trim().toUpperCase();
+
+    if (!normalizedCode) {
+      setQrError(
+        "Enter the code printed under the pre-made QR label."
+      );
+      return;
+    }
+
+    setQrBusy(true);
+    setQrError("");
+    setQrSuccess("");
+
+    try {
+      const supabase = createClient();
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (
+        sessionError ||
+        !session?.access_token
+      ) {
+        router.replace("/login");
+        return;
+      }
+
+      const response = await fetch(
+        "/api/qr-assignment",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+            Authorization:
+              `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            action,
+            memoryId: order.id,
+            qrCode: normalizedCode,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result?.error ||
+            "Unable to update the QR assignment."
+        );
+      }
+
+      const updatedQr =
+        result.qrCode as AssignedQr;
+
+      setAssignedQr(updatedQr);
+      setQrCodeInput(updatedQr.code);
+
+      if (updatedQr.status === "ACTIVE") {
+        setQrSuccess(
+          `QR ${updatedQr.code} is active and now opens this memory.`
+        );
+      } else {
+        setQrSuccess(
+          `QR ${updatedQr.code} has been assigned to this order.`
+        );
+      }
+    } catch (caught) {
+      setQrError(
+        caught instanceof Error
+          ? caught.message
+          : "Unable to update the QR assignment."
+      );
+    } finally {
+      setQrBusy(false);
+    }
+  }
+
+  function getPremadeQrUrl() {
+    if (!assignedQr) {
+      return "";
+    }
+
+    return `https://memoryblockapp.vercel.app/q/${assignedQr.code}`;
   }
 
   if (loading) {
@@ -437,11 +603,13 @@ export default function OrderPage() {
                 <dd className="mt-1">
                   {order.upload_source === "SHOP_QR"
                     ? "In-store QR"
-                    : order.upload_source === "PRIVATE_LINK"
-                      ? "Private link"
-                      : order.upload_source === "STAFF"
-                        ? "Staff"
-                        : "Unknown"}
+                    : order.upload_source === "PREMADE_QR"
+                      ? "Pre-made QR"
+                      : order.upload_source === "PRIVATE_LINK"
+                        ? "Private link"
+                        : order.upload_source === "STAFF"
+                          ? "Staff"
+                          : "Unknown"}
                 </dd>
               </div>
 
@@ -451,7 +619,11 @@ export default function OrderPage() {
                 </dt>
 
                 <dd className="mt-1">
-                  {order.label_printed_at ? (
+                  {order.upload_source === "PREMADE_QR" && ready ? (
+                    <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">
+                      Pre-printed QR attached
+                    </span>
+                  ) : order.label_printed_at ? (
                     <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
                       Printed
                     </span>
@@ -551,45 +723,222 @@ export default function OrderPage() {
                   Open recipient page
                 </a>
 
-                {order.label_printed_at && (
-                  <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
-                    <p className="font-semibold text-emerald-900">
-                      ✓ Label printed
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <h2 className="font-semibold text-slate-900">
+                        Pre-printed QR label
+                      </h2>
+
+                      <p className="mt-1 text-sm leading-6 text-slate-500">
+                        Optional. Use one of the QR labels you printed in advance instead of printing a new QR for this order.
+                      </p>
+                    </div>
+
+                    <Link
+                      href="/qr-inventory"
+                      className="shrink-0 text-sm font-semibold text-emerald-800 hover:underline"
+                    >
+                      QR inventory
+                    </Link>
+                  </div>
+
+                  {!assignedQr ? (
+                    <>
+                      <label className="mt-5 block text-sm font-semibold text-slate-700">
+                        QR code
+                      </label>
+
+                      <input
+                        type="text"
+                        value={qrCodeInput}
+                        onChange={(event) =>
+                          setQrCodeInput(
+                            event.target.value
+                              .toUpperCase()
+                              .replace(
+                                /[^A-Z0-9]/g,
+                                ""
+                              )
+                          )
+                        }
+                        placeholder="Example: GBGX3NTCRV"
+                        maxLength={20}
+                        disabled={qrBusy}
+                        className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 font-mono uppercase tracking-wider outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
+                      />
+
+                      <p className="mt-2 text-xs text-slate-400">
+                        Enter the code printed underneath the physical pre-made QR label.
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runQrAction(
+                            "assign",
+                            qrCodeInput
+                          )
+                        }
+                        disabled={
+                          qrBusy ||
+                          !qrCodeInput.trim()
+                        }
+                        className="mt-4 w-full rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {qrBusy
+                          ? "Assigning…"
+                          : "Assign pre-printed QR"}
+                      </button>
+                    </>
+                  ) : (
+                    <div
+                      className={`mt-5 rounded-xl border p-4 ${
+                        assignedQr.status ===
+                        "ACTIVE"
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Assigned QR
+                          </p>
+
+                          <p className="mt-1 font-mono text-lg font-bold tracking-widest text-slate-900">
+                            {assignedQr.code}
+                          </p>
+                        </div>
+
+                        <span
+                          className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                            assignedQr.status ===
+                            "ACTIVE"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {assignedQr.status ===
+                          "ACTIVE"
+                            ? "Active"
+                            : "Assigned"}
+                        </span>
+                      </div>
+
+                      {assignedQr.status ===
+                        "ASSIGNED" && (
+                        <>
+                          <p className="mt-4 text-sm leading-6 text-amber-800">
+                            The physical QR is linked to this order, but it will not open the voice memory until you activate it.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              void runQrAction(
+                                "activate",
+                                assignedQr.code
+                              )
+                            }
+                            disabled={qrBusy}
+                            className="mt-4 w-full rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {qrBusy
+                              ? "Activating…"
+                              : "Activate QR"}
+                          </button>
+                        </>
+                      )}
+
+                      {assignedQr.status ===
+                        "ACTIVE" && (
+                        <>
+                          <p className="mt-4 text-sm leading-6 text-emerald-800">
+                            ✓ This pre-printed QR is active. Scanning the physical label now opens this voice memory.
+                          </p>
+
+                          <a
+                            href={getPremadeQrUrl()}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mt-4 block rounded-lg border border-emerald-900 px-4 py-3 text-center font-semibold text-emerald-900 hover:bg-emerald-50"
+                          >
+                            Test pre-printed QR page
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {qrError && (
+                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                      {qrError}
+                    </div>
+                  )}
+
+                  {qrSuccess && (
+                    <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                      {qrSuccess}
+                    </div>
+                  )}
+                </div>
+
+                {order.upload_source !== "PREMADE_QR" && (
+                  <>
+                    {order.label_printed_at && (
+                      <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
+                        <p className="font-semibold text-emerald-900">
+                          ✓ Label printed
+                        </p>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                          {new Intl.DateTimeFormat(
+                            "en-GB",
+                            {
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }
+                          ).format(
+                            new Date(
+                              order.label_printed_at
+                            )
+                          )}
+                        </p>
+                      </div>
+                    )}
+
+                    <MemoryQr
+                      publicCode={
+                        order.public_code
+                      }
+                      recipientName={
+                        order.recipient_name
+                      }
+                      printed={
+                        !!order.label_printed_at
+                      }
+                      markingPrinted={
+                        markingPrinted
+                      }
+                      onPrinted={
+                        markLabelPrinted
+                      }
+                    />
+                  </>
+                )}
+
+                {order.upload_source === "PREMADE_QR" && (
+                  <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
+                    <p className="font-semibold text-cyan-900">
+                      ✓ No new QR label needs to be printed
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500">
-                      {new Intl.DateTimeFormat(
-                        "en-GB",
-                        {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        }
-                      ).format(
-                        new Date(
-                          order.label_printed_at
-                        )
-                      )}
+                    <p className="mt-1 text-sm leading-6 text-cyan-800">
+                      This order was created from the pre-printed QR already attached to the physical Memory Block.
                     </p>
                   </div>
                 )}
-
-                <MemoryQr
-                  publicCode={
-                    order.public_code
-                  }
-                  recipientName={
-                    order.recipient_name
-                  }
-                  printed={
-                    !!order.label_printed_at
-                  }
-                  markingPrinted={
-                    markingPrinted
-                  }
-                  onPrinted={
-                    markLabelPrinted
-                  }
-                />
               </>
             )}
           </section>

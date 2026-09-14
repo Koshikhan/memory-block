@@ -62,6 +62,8 @@ function sourceLabel(source: string | null) {
       return "Private link";
     case "SHOP_QR":
       return "In-store QR";
+    case "PREMADE_QR":
+      return "Pre-made QR";
     default:
       return "Unknown";
   }
@@ -71,6 +73,8 @@ function sourceStyles(source: string | null) {
   switch (source) {
     case "SHOP_QR":
       return "bg-violet-100 text-violet-800";
+    case "PREMADE_QR":
+      return "bg-cyan-100 text-cyan-800";
     case "PRIVATE_LINK":
       return "bg-blue-100 text-blue-800";
     case "STAFF":
@@ -85,6 +89,13 @@ function labelStatus(order: MemoryOrder) {
     return {
       label: "Not ready",
       classes: "bg-slate-100 text-slate-600",
+    };
+  }
+
+  if (order.upload_source === "PREMADE_QR") {
+    return {
+      label: "Pre-printed",
+      classes: "bg-cyan-100 text-cyan-800",
     };
   }
 
@@ -249,6 +260,7 @@ export default function OrdersPage() {
     (order) =>
       order.status === "READY" &&
       !!order.audio_path &&
+      order.upload_source !== "PREMADE_QR" &&
       !order.label_printed_at
   ).length;
 
