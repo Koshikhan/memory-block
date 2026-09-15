@@ -19,6 +19,7 @@ import OrderDetailsCard from "@/components/orders/OrderDetailsCard";
 import PremadeQrAssignmentCard, {
   type AssignedQr,
 } from "@/components/orders/PremadeQrAssignmentCard";
+import CustomerUploadCard from "@/components/orders/CustomerUploadCard";
 import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
 
 type MemoryOrder = Pick<
@@ -498,47 +499,12 @@ export default function OrderPage() {
           {/* Status area */}
           <section>
             {waiting && (
-              <div className="rounded-xl border border-amber-200 bg-white p-6">
-                <h2 className="text-lg font-semibold">
-                  Customer upload
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  The customer has not
-                  submitted their recording
-                  yet.
-                </p>
-
-                <div className="mt-5 rounded-lg bg-slate-50 p-4">
-                  <p className="break-all text-xs text-slate-600">
-                    {getUploadUrl()}
-                  </p>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={
-                      copyUploadLink
-                    }
-                    className="rounded-lg border border-emerald-900 px-4 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
-                  >
-                    {copied
-                      ? "Copied ✓"
-                      : "Copy upload link"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      openWhatsApp
-                    }
-                    className="rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900"
-                  >
-                    Open WhatsApp
-                  </button>
-                </div>
-              </div>
+              <CustomerUploadCard
+                uploadUrl={getUploadUrl()}
+                copied={copied}
+                onCopy={copyUploadLink}
+                onOpenWhatsApp={openWhatsApp}
+              />
             )}
 
             {ready && (
