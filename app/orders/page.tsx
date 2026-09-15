@@ -5,26 +5,33 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import StaffHeader from "@/components/layout/StaffHeader";
+import type {
+  MemoryOrder as MemoryOrderRecord,
+  MemorySource,
+  MemoryStatus,
+} from "@/types/memory";
 
-type MemoryOrder = {
-  id: string;
-  order_number: string | null;
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-  sender_name: string;
-  recipient_name: string;
-  status: string;
-  audio_path: string | null;
-  upload_token: string | null;
-  public_code: string;
-  created_at: string;
-  uploaded_at: string | null;
-  upload_source: string | null;
-  label_printed_at: string | null;
-};
+type MemoryOrder = Pick<
+  MemoryOrderRecord,
+  | "id"
+  | "order_number"
+  | "customer_name"
+  | "customer_email"
+  | "customer_phone"
+  | "sender_name"
+  | "recipient_name"
+  | "status"
+  | "audio_path"
+  | "upload_token"
+  | "public_code"
+  | "created_at"
+  | "uploaded_at"
+  | "upload_source"
+  | "label_printed_at"
+>;
 
-function statusStyles(status: string) {
+function statusStyles(status: MemoryStatus) {
   switch (status) {
     case "READY":
       return "bg-emerald-100 text-emerald-800";
@@ -39,7 +46,7 @@ function statusStyles(status: string) {
   }
 }
 
-function statusLabel(status: string) {
+function statusLabel(status: MemoryStatus) {
   switch (status) {
     case "READY":
       return "Ready";
@@ -54,7 +61,7 @@ function statusLabel(status: string) {
   }
 }
 
-function sourceLabel(source: string | null) {
+function sourceLabel(source: MemorySource | null) {
   switch (source) {
     case "STAFF":
       return "Staff";
@@ -69,7 +76,7 @@ function sourceLabel(source: string | null) {
   }
 }
 
-function sourceStyles(source: string | null) {
+function sourceStyles(source: MemorySource | null) {
   switch (source) {
     case "SHOP_QR":
       return "bg-violet-100 text-violet-800";
@@ -266,29 +273,10 @@ export default function OrdersPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-widest text-emerald-900"
-          >
-            MEMORY BLOCK
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Create memory
-            </Link>
-
-            <span className="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white">
-              Orders
-            </span>
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        current="orders"
+        maxWidth="7xl"
+      />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">

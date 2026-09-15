@@ -5,27 +5,30 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
+import { QR_BATCH_SIZES } from "@/lib/constants";
+import StaffHeader from "@/components/layout/StaffHeader";
+import type {
+  QrBatch,
+  QrCodeRecord,
+  QrStatus,
+} from "@/types/qr";
 
-type QrBatch = {
-  id: string;
-  batch_number: number;
-  requested_quantity: number;
-  created_at: string;
-};
+type QrCode = Pick<
+  QrCodeRecord,
+  | "id"
+  | "batch_id"
+  | "code"
+  | "status"
+  | "memory_id"
+  | "created_at"
+  | "assigned_at"
+  | "activated_at"
+  | "voided_at"
+>;
 
-type QrCode = {
-  id: string;
-  batch_id: string;
-  code: string;
-  status: "AVAILABLE" | "ASSIGNED" | "ACTIVE" | "VOID";
-  memory_id: string | null;
-  created_at: string;
-  assigned_at: string | null;
-  activated_at: string | null;
-  voided_at: string | null;
-};
+type QrBatchSize = (typeof QR_BATCH_SIZES)[number];
 
-function statusPill(status: QrCode["status"]) {
+function statusPill(status: QrStatus) {
   switch (status) {
     case "AVAILABLE":
       return "bg-emerald-100 text-emerald-800";
@@ -45,7 +48,7 @@ export default function QrInventoryPage() {
   const [codes, setCodes] = useState<QrCode[]>([]);
 
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState<number | null>(null);
+  const [generating, setGenerating] = useState<QrBatchSize | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -120,7 +123,7 @@ export default function QrInventoryPage() {
     void loadInventory();
   }, [loadInventory]);
 
-  async function generateBatch(quantity: 20 | 50 | 100) {
+  async function generateBatch(quantity: QrBatchSize) {
     if (generating) return;
 
     setGenerating(quantity);
@@ -217,29 +220,10 @@ export default function QrInventoryPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-widest text-emerald-900"
-          >
-            MEMORY BLOCK
-          </Link>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/orders"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Orders
-            </Link>
-
-            <span className="rounded-lg bg-emerald-950 px-4 py-2 text-sm font-semibold text-white">
-              QR Inventory
-            </span>
-          </div>
-        </div>
-      </header>
+      <StaffHeader
+        current="qr-inventory"
+        maxWidth="7xl"
+      />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -279,14 +263,12 @@ export default function QrInventoryPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-3">
-              {[20, 50, 100].map((quantity) => (
+              {QR_BATCH_SIZES.map((quantity) => (
                 <button
                   key={quantity}
                   type="button"
                   onClick={() =>
-                    void generateBatch(
-                      quantity as 20 | 50 | 100
-                    )
+                    void generateBatch(quantity)
                   }
                   disabled={generating !== null}
                   className="rounded-lg bg-emerald-950 px-5 py-3 font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"

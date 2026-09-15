@@ -1,53 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
 import { createClient } from "@/lib/supabase/client";
+import StaffDetailHeader from "@/components/layout/StaffDetailHeader";
+import { PRODUCTION_APP_URL } from "@/lib/constants";
+import type {
+  QrBatch,
+  QrCodeRecord,
+} from "@/types/qr";
+import { printQrBatch } from "@/lib/qr-print";
+import QrBatchPreviewGrid, {
+  type RenderedQr,
+} from "@/components/qr/QrBatchPreviewGrid";
 
-type QrBatch = {
-  id: string;
-  batch_number: number;
-  requested_quantity: number;
-  created_at: string;
-};
+type QrCode = Pick<
+  QrCodeRecord,
+  | "id"
+  | "code"
+  | "status"
+  | "memory_id"
+  | "created_at"
+>;
 
-type QrCode = {
-  id: string;
-  code: string;
-  status: "AVAILABLE" | "ASSIGNED" | "ACTIVE" | "VOID";
-  memory_id: string | null;
-  created_at: string;
-};
-
-type RenderedQr = QrCode & {
-  qrUrl: string;
-  publicUrl: string;
-};
-
-function statusStyles(status: QrCode["status"]) {
-  switch (status) {
-    case "AVAILABLE":
-      return "bg-emerald-100 text-emerald-800";
-    case "ASSIGNED":
-      return "bg-amber-100 text-amber-800";
-    case "ACTIVE":
-      return "bg-blue-100 text-blue-800";
-    case "VOID":
-      return "bg-slate-200 text-slate-700";
-  }
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 export default function QrBatchPage() {
   const params = useParams<{ id: string }>();
@@ -151,7 +128,7 @@ export default function QrBatchPage() {
         // Do not use localhost or a LAN IP here, otherwise printed QR codes
         // would stop working outside your development network.
         const baseUrl =
-          "https://memoryblockapp.vercel.app";
+          PRODUCTION_APP_URL;
 
         const rendered = await Promise.all(
           codes.map(async (item) => {
@@ -204,168 +181,10 @@ export default function QrBatchPage() {
   function printBatch() {
     if (!batch || renderedCodes.length === 0) return;
 
-    const printWindow = window.open(
-      "",
-      "_blank",
-      "width=1100,height=900"
-    );
-
-    if (!printWindow) {
-      alert(
-        "The print window was blocked. Please allow pop-ups and try again."
-      );
-      return;
-    }
-
-    const cards = renderedCodes
-      .map((item, index) => {
-        const safeCode = escapeHtml(item.code);
-
-        return `
-          <div class="label">
-            <div class="brand">MEMORY BLOCK</div>
-
-            <img
-              class="qr"
-              src="${item.qrUrl}"
-              alt="QR ${safeCode}"
-            />
-
-            <div class="scan">SCAN TO OPEN MEMORY</div>
-
-            <div class="code">${safeCode}</div>
-
-            <div class="number">
-              ${String(index + 1).padStart(2, "0")}
-              /
-              ${String(renderedCodes.length).padStart(2, "0")}
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-
-          <title>
-            Memory Block - Batch #${batch.batch_number}
-          </title>
-
-          <style>
-            @page {
-              size: A4;
-              margin: 10mm;
-            }
-
-            * {
-              box-sizing: border-box;
-            }
-
-            html,
-            body {
-              margin: 0;
-              padding: 0;
-              background: white;
-              color: #064e3b;
-
-              font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-            }
-
-            .sheet {
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 6mm;
-            }
-
-            .label {
-              min-height: 82mm;
-
-              border: 0.4mm solid #064e3b;
-              border-radius: 3mm;
-
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              justify-content: center;
-
-              padding: 5mm;
-
-              text-align: center;
-
-              break-inside: avoid;
-              page-break-inside: avoid;
-            }
-
-            .brand {
-              font-size: 9pt;
-              font-weight: 800;
-              letter-spacing: 2px;
-            }
-
-            .qr {
-              width: 45mm;
-              height: 45mm;
-              margin: 3mm 0 2mm;
-              display: block;
-            }
-
-            .scan {
-              font-size: 6.5pt;
-              font-weight: 700;
-              color: #475569;
-            }
-
-            .code {
-              margin-top: 1.5mm;
-
-              font-size: 8pt;
-              font-weight: 800;
-              letter-spacing: 1.2px;
-
-              color: #064e3b;
-            }
-
-            .number {
-              margin-top: 1mm;
-
-              font-size: 6pt;
-              color: #94a3b8;
-            }
-
-            @media print {
-              .sheet {
-                grid-template-columns: repeat(3, 1fr);
-              }
-            }
-          </style>
-        </head>
-
-        <body>
-          <div class="sheet">
-            ${cards}
-          </div>
-
-          <script>
-            window.onload = function () {
-              setTimeout(function () {
-                window.print();
-              }, 350);
-            };
-          </script>
-        </body>
-      </html>
-    `);
-
-    printWindow.document.close();
+    printQrBatch({
+      batchNumber: batch.batch_number,
+      renderedCodes,
+    });
   }
 
   if (loading) {
@@ -388,23 +207,11 @@ export default function QrBatchPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-widest text-emerald-900"
-          >
-            MEMORY BLOCK
-          </Link>
-
-          <Link
-            href="/qr-inventory"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            ← QR Inventory
-          </Link>
-        </div>
-      </header>
+      <StaffDetailHeader
+        backHref="/qr-inventory"
+        backLabel="QR Inventory"
+        maxWidth="7xl"
+      />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
@@ -496,62 +303,10 @@ export default function QrBatchPage() {
           </div>
         </section>
 
-        <section className="mt-8">
-          <div className="mb-4">
-            <h2 className="text-xl font-semibold">
-              QR codes
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              These codes can be printed now and assigned to orders later.
-            </p>
-          </div>
-
-          {generatingQrs ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-500">
-              Generating QR previews…
-            </div>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {renderedCodes.map((item, index) => (
-                <article
-                  key={item.id}
-                  className="rounded-xl border border-slate-200 bg-white p-5"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                        QR {index + 1}
-                      </p>
-
-                      <p className="mt-1 font-mono text-sm font-bold tracking-wider text-slate-900">
-                        {item.code}
-                      </p>
-                    </div>
-
-                    <span
-                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusStyles(
-                        item.status
-                      )}`}
-                    >
-                      {item.status}
-                    </span>
-                  </div>
-
-                  <img
-                    src={item.qrUrl}
-                    alt={`QR ${item.code}`}
-                    className="mx-auto mt-5 w-full max-w-[220px]"
-                  />
-
-                  <p className="mt-4 break-all text-center text-[11px] text-slate-400">
-                    {item.publicUrl}
-                  </p>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+        <QrBatchPreviewGrid
+          renderedCodes={renderedCodes}
+          generating={generatingQrs}
+        />
       </div>
     </main>
   );

@@ -13,44 +13,35 @@ import {
 } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/client";
-import MemoryQr from "@/components/MemoryQr";
+import { PRODUCTION_APP_URL } from "@/lib/constants";
+import OrderDetailsCard from "@/components/orders/OrderDetailsCard";
+import type {
+  AssignedQr,
+} from "@/components/orders/PremadeQrAssignmentCard";
+import CustomerUploadCard from "@/components/orders/CustomerUploadCard";
+import ReadyOrderPanel from "@/components/orders/ReadyOrderPanel";
+import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
 
-type MemoryOrder = {
-  id: string;
-  order_number: string | null;
-
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-
-  sender_name: string;
-  recipient_name: string;
-  message: string | null;
-
-  status: string;
-
-  audio_path: string | null;
-
-  upload_token: string | null;
-  upload_expires_at: string | null;
-
-  public_code: string;
-
-  created_at: string;
-  uploaded_at: string | null;
-
-  upload_source: string | null;
-  label_printed_at: string | null;
-};
-
-type AssignedQr = {
-  id: string;
-  code: string;
-  status: "ASSIGNED" | "ACTIVE";
-  memory_id: string;
-  assigned_at: string | null;
-  activated_at: string | null;
-};
+type MemoryOrder = Pick<
+  MemoryOrderRecord,
+  | "id"
+  | "order_number"
+  | "customer_name"
+  | "customer_email"
+  | "customer_phone"
+  | "sender_name"
+  | "recipient_name"
+  | "message"
+  | "status"
+  | "audio_path"
+  | "upload_token"
+  | "upload_expires_at"
+  | "public_code"
+  | "created_at"
+  | "uploaded_at"
+  | "upload_source"
+  | "label_printed_at"
+>;
 
 export default function OrderPage() {
   const params = useParams<{
@@ -420,7 +411,7 @@ export default function OrderPage() {
       return "";
     }
 
-    return `https://memoryblockapp.vercel.app/q/${assignedQr.code}`;
+    return `${PRODUCTION_APP_URL}/q/${assignedQr.code}`;
   }
 
   if (loading) {
@@ -500,446 +491,48 @@ export default function OrderPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          {/* Details */}
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold">
-              Order details
-            </h2>
-
-            <dl className="mt-6 grid gap-5">
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Customer
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_name ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Email
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_email ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Mobile
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_phone ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  From
-                </dt>
-
-                <dd className="mt-1">
-                  {order.sender_name}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  For
-                </dt>
-
-                <dd className="mt-1">
-                  {
-                    order.recipient_name
-                  }
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Message
-                </dt>
-
-                <dd className="mt-1 whitespace-pre-wrap">
-                  {order.message ||
-                    "No message"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Created
-                </dt>
-
-                <dd className="mt-1">
-                  {new Intl.DateTimeFormat(
-                    "en-GB",
-                    {
-                      dateStyle:
-                        "medium",
-                      timeStyle:
-                        "short",
-                    }
-                  ).format(
-                    new Date(
-                      order.created_at
-                    )
-                  )}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Source
-                </dt>
-
-                <dd className="mt-1">
-                  {order.upload_source === "SHOP_QR"
-                    ? "In-store QR"
-                    : order.upload_source === "PREMADE_QR"
-                      ? "Pre-made QR"
-                      : order.upload_source === "PRIVATE_LINK"
-                        ? "Private link"
-                        : order.upload_source === "STAFF"
-                          ? "Staff"
-                          : "Unknown"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Label
-                </dt>
-
-                <dd className="mt-1">
-                  {order.upload_source === "PREMADE_QR" && ready ? (
-                    <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">
-                      Pre-printed QR attached
-                    </span>
-                  ) : order.label_printed_at ? (
-                    <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                      Printed
-                    </span>
-                  ) : ready ? (
-                    <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
-                      To print
-                    </span>
-                  ) : (
-                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                      Not ready
-                    </span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </section>
+          <OrderDetailsCard
+            order={order}
+            ready={ready}
+          />
 
           {/* Status area */}
           <section>
             {waiting && (
-              <div className="rounded-xl border border-amber-200 bg-white p-6">
-                <h2 className="text-lg font-semibold">
-                  Customer upload
-                </h2>
-
-                <p className="mt-2 text-sm leading-6 text-slate-600">
-                  The customer has not
-                  submitted their recording
-                  yet.
-                </p>
-
-                <div className="mt-5 rounded-lg bg-slate-50 p-4">
-                  <p className="break-all text-xs text-slate-600">
-                    {getUploadUrl()}
-                  </p>
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={
-                      copyUploadLink
-                    }
-                    className="rounded-lg border border-emerald-900 px-4 py-3 font-semibold text-emerald-900 hover:bg-emerald-50"
-                  >
-                    {copied
-                      ? "Copied ✓"
-                      : "Copy upload link"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      openWhatsApp
-                    }
-                    className="rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900"
-                  >
-                    Open WhatsApp
-                  </button>
-                </div>
-              </div>
+              <CustomerUploadCard
+                uploadUrl={getUploadUrl()}
+                copied={copied}
+                onCopy={copyUploadLink}
+                onOpenWhatsApp={openWhatsApp}
+              />
             )}
 
             {ready && (
-              <>
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-                  <p className="font-semibold text-emerald-900">
-                    ✓ Voice message received
-                  </p>
-
-                  {order.uploaded_at && (
-                    <p className="mt-2 text-sm text-emerald-700">
-                      Received{" "}
-                      {new Intl.DateTimeFormat(
-                        "en-GB",
-                        {
-                          dateStyle:
-                            "medium",
-                          timeStyle:
-                            "short",
-                        }
-                      ).format(
-                        new Date(
-                          order.uploaded_at
-                        )
-                      )}
-                    </p>
-                  )}
-                </div>
-
-                <a
-                  href={getMemoryUrl()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 block rounded-lg border border-emerald-900 px-4 py-3 text-center font-semibold text-emerald-900 hover:bg-emerald-50"
-                >
-                  Open recipient page
-                </a>
-
-                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <h2 className="font-semibold text-slate-900">
-                        Pre-printed QR label
-                      </h2>
-
-                      <p className="mt-1 text-sm leading-6 text-slate-500">
-                        Optional. Use one of the QR labels you printed in advance instead of printing a new QR for this order.
-                      </p>
-                    </div>
-
-                    <Link
-                      href="/qr-inventory"
-                      className="shrink-0 text-sm font-semibold text-emerald-800 hover:underline"
-                    >
-                      QR inventory
-                    </Link>
-                  </div>
-
-                  {!assignedQr ? (
-                    <>
-                      <label className="mt-5 block text-sm font-semibold text-slate-700">
-                        QR code
-                      </label>
-
-                      <input
-                        type="text"
-                        value={qrCodeInput}
-                        onChange={(event) =>
-                          setQrCodeInput(
-                            event.target.value
-                              .toUpperCase()
-                              .replace(
-                                /[^A-Z0-9]/g,
-                                ""
-                              )
-                          )
-                        }
-                        placeholder="Example: GBGX3NTCRV"
-                        maxLength={20}
-                        disabled={qrBusy}
-                        className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 font-mono uppercase tracking-wider outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100 disabled:bg-slate-100"
-                      />
-
-                      <p className="mt-2 text-xs text-slate-400">
-                        Enter the code printed underneath the physical pre-made QR label.
-                      </p>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void runQrAction(
-                            "assign",
-                            qrCodeInput
-                          )
-                        }
-                        disabled={
-                          qrBusy ||
-                          !qrCodeInput.trim()
-                        }
-                        className="mt-4 w-full rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {qrBusy
-                          ? "Assigning…"
-                          : "Assign pre-printed QR"}
-                      </button>
-                    </>
-                  ) : (
-                    <div
-                      className={`mt-5 rounded-xl border p-4 ${
-                        assignedQr.status ===
-                        "ACTIVE"
-                          ? "border-emerald-200 bg-emerald-50"
-                          : "border-amber-200 bg-amber-50"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                            Assigned QR
-                          </p>
-
-                          <p className="mt-1 font-mono text-lg font-bold tracking-widest text-slate-900">
-                            {assignedQr.code}
-                          </p>
-                        </div>
-
-                        <span
-                          className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                            assignedQr.status ===
-                            "ACTIVE"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {assignedQr.status ===
-                          "ACTIVE"
-                            ? "Active"
-                            : "Assigned"}
-                        </span>
-                      </div>
-
-                      {assignedQr.status ===
-                        "ASSIGNED" && (
-                        <>
-                          <p className="mt-4 text-sm leading-6 text-amber-800">
-                            The physical QR is linked to this order, but it will not open the voice memory until you activate it.
-                          </p>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void runQrAction(
-                                "activate",
-                                assignedQr.code
-                              )
-                            }
-                            disabled={qrBusy}
-                            className="mt-4 w-full rounded-lg bg-emerald-950 px-4 py-3 font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {qrBusy
-                              ? "Activating…"
-                              : "Activate QR"}
-                          </button>
-                        </>
-                      )}
-
-                      {assignedQr.status ===
-                        "ACTIVE" && (
-                        <>
-                          <p className="mt-4 text-sm leading-6 text-emerald-800">
-                            ✓ This pre-printed QR is active. Scanning the physical label now opens this voice memory.
-                          </p>
-
-                          <a
-                            href={getPremadeQrUrl()}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mt-4 block rounded-lg border border-emerald-900 px-4 py-3 text-center font-semibold text-emerald-900 hover:bg-emerald-50"
-                          >
-                            Test pre-printed QR page
-                          </a>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {qrError && (
-                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                      {qrError}
-                    </div>
-                  )}
-
-                  {qrSuccess && (
-                    <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                      {qrSuccess}
-                    </div>
-                  )}
-                </div>
-
-                {order.upload_source !== "PREMADE_QR" && (
-                  <>
-                    {order.label_printed_at && (
-                      <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
-                        <p className="font-semibold text-emerald-900">
-                          ✓ Label printed
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-500">
-                          {new Intl.DateTimeFormat(
-                            "en-GB",
-                            {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }
-                          ).format(
-                            new Date(
-                              order.label_printed_at
-                            )
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                    <MemoryQr
-                      publicCode={
-                        order.public_code
-                      }
-                      recipientName={
-                        order.recipient_name
-                      }
-                      printed={
-                        !!order.label_printed_at
-                      }
-                      markingPrinted={
-                        markingPrinted
-                      }
-                      onPrinted={
-                        markLabelPrinted
-                      }
-                    />
-                  </>
-                )}
-
-                {order.upload_source === "PREMADE_QR" && (
-                  <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-                    <p className="font-semibold text-cyan-900">
-                      ✓ No new QR label needs to be printed
-                    </p>
-
-                    <p className="mt-1 text-sm leading-6 text-cyan-800">
-                      This order was created from the pre-printed QR already attached to the physical Memory Block.
-                    </p>
-                  </div>
-                )}
-              </>
+              <ReadyOrderPanel
+                order={order}
+                memoryUrl={getMemoryUrl()}
+                assignedQr={assignedQr}
+                qrCodeInput={qrCodeInput}
+                qrBusy={qrBusy}
+                qrError={qrError}
+                qrSuccess={qrSuccess}
+                premadeQrUrl={getPremadeQrUrl()}
+                markingPrinted={markingPrinted}
+                onCodeChange={setQrCodeInput}
+                onAssign={() =>
+                  void runQrAction(
+                    "assign",
+                    qrCodeInput
+                  )
+                }
+                onActivate={(code) =>
+                  void runQrAction(
+                    "activate",
+                    code
+                  )
+                }
+                onPrinted={markLabelPrinted}
+              />
             )}
           </section>
         </div>
