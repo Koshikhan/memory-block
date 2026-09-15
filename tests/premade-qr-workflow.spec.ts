@@ -394,19 +394,7 @@ test("customer can activate a pre-made QR Memory Block", async ({
         await localSupabaseAdmin
           .from("memories")
           .select(
-            [
-              "id",
-              "order_number",
-              "public_code",
-              "status",
-              "upload_source",
-              "audio_path",
-              "message",
-              "customer_name",
-              "customer_phone",
-              "sender_name",
-              "recipient_name",
-            ].join(",")
+            "id,order_number,public_code,status,upload_source,audio_path,message,customer_name,customer_phone,sender_name,recipient_name"
           )
           .eq(
             "id",
@@ -589,6 +577,8 @@ test("customer can activate a pre-made QR Memory Block", async ({
         customerName
       );
 
-    await authClient.auth.signOut();
+    await authClient.auth.signOut({
+      scope: "local",
+    });
   }
 });

@@ -159,18 +159,7 @@ test("customer can create a memory from the permanent shop QR page", async ({
             await localSupabaseAdmin
               .from("memories")
               .select(
-                [
-                  "id",
-                  "order_number",
-                  "public_code",
-                  "status",
-                  "upload_source",
-                  "audio_path",
-                  "customer_name",
-                  "customer_phone",
-                  "sender_name",
-                  "recipient_name",
-                ].join(",")
+                "id,order_number,public_code,status,upload_source,audio_path,customer_name,customer_phone,sender_name,recipient_name"
               )
               .eq(
                 "customer_name",

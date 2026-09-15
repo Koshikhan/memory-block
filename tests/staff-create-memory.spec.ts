@@ -141,15 +141,7 @@ test("staff can create a complete memory", async ({
             await localSupabaseAdmin
               .from("memories")
               .select(
-                [
-                  "id",
-                  "public_code",
-                  "status",
-                  "upload_source",
-                  "audio_path",
-                  "sender_name",
-                  "recipient_name",
-                ].join(",")
+                "id,public_code,status,upload_source,audio_path,sender_name,recipient_name"
               )
               .eq(
                 "order_number",

@@ -141,13 +141,7 @@ test("customer can upload voice later and memory becomes ready", async ({
             await localSupabaseAdmin
               .from("memories")
               .select(
-                [
-                  "id",
-                  "upload_token",
-                  "public_code",
-                  "status",
-                  "upload_source",
-                ].join(",")
+                "id,upload_token,public_code,status,upload_source"
               )
               .eq(
                 "order_number",
