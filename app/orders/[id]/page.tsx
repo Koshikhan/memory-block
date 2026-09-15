@@ -15,6 +15,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCTION_APP_URL } from "@/lib/constants";
 import MemoryQr from "@/components/MemoryQr";
+import OrderDetailsCard from "@/components/orders/OrderDetailsCard";
 import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
 import type { QrCodeRecord, QrStatus } from "@/types/qr";
 
@@ -501,146 +502,10 @@ export default function OrderPage() {
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          {/* Details */}
-          <section className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="text-lg font-semibold">
-              Order details
-            </h2>
-
-            <dl className="mt-6 grid gap-5">
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Customer
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_name ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Email
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_email ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Mobile
-                </dt>
-
-                <dd className="mt-1">
-                  {order.customer_phone ||
-                    "—"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  From
-                </dt>
-
-                <dd className="mt-1">
-                  {order.sender_name}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  For
-                </dt>
-
-                <dd className="mt-1">
-                  {
-                    order.recipient_name
-                  }
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Message
-                </dt>
-
-                <dd className="mt-1 whitespace-pre-wrap">
-                  {order.message ||
-                    "No message"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Created
-                </dt>
-
-                <dd className="mt-1">
-                  {new Intl.DateTimeFormat(
-                    "en-GB",
-                    {
-                      dateStyle:
-                        "medium",
-                      timeStyle:
-                        "short",
-                    }
-                  ).format(
-                    new Date(
-                      order.created_at
-                    )
-                  )}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Source
-                </dt>
-
-                <dd className="mt-1">
-                  {order.upload_source === "SHOP_QR"
-                    ? "In-store QR"
-                    : order.upload_source === "PREMADE_QR"
-                      ? "Pre-made QR"
-                      : order.upload_source === "PRIVATE_LINK"
-                        ? "Private link"
-                        : order.upload_source === "STAFF"
-                          ? "Staff"
-                          : "Unknown"}
-                </dd>
-              </div>
-
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Label
-                </dt>
-
-                <dd className="mt-1">
-                  {order.upload_source === "PREMADE_QR" && ready ? (
-                    <span className="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">
-                      Pre-printed QR attached
-                    </span>
-                  ) : order.label_printed_at ? (
-                    <span className="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                      Printed
-                    </span>
-                  ) : ready ? (
-                    <span className="inline-flex rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-800">
-                      To print
-                    </span>
-                  ) : (
-                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-                      Not ready
-                    </span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-          </section>
+          <OrderDetailsCard
+            order={order}
+            ready={ready}
+          />
 
           {/* Status area */}
           <section>
