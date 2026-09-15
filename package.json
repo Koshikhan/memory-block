@@ -10,7 +10,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:setup": "node scripts/setup-e2e-local.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

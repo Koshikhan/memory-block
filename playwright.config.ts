@@ -3,7 +3,27 @@ import dotenv from "dotenv";
 
 dotenv.config({
   path: ".env.test.local",
+  quiet: true,
 });
+
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+if (!supabaseUrl) {
+  throw new Error(
+    "NEXT_PUBLIC_SUPABASE_URL is missing from .env.test.local"
+  );
+}
+
+const isLocalSupabase =
+  supabaseUrl.includes("127.0.0.1") ||
+  supabaseUrl.includes("localhost");
+
+if (!isLocalSupabase) {
+  throw new Error(
+    `E2E SAFETY CHECK FAILED: refusing to run against non-local Supabase: ${supabaseUrl}`
+  );
+}
 
 export default defineConfig({
   testDir: "./tests",
