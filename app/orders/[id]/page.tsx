@@ -14,12 +14,12 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCTION_APP_URL } from "@/lib/constants";
-import MemoryQr from "@/components/MemoryQr";
 import OrderDetailsCard from "@/components/orders/OrderDetailsCard";
-import PremadeQrAssignmentCard, {
-  type AssignedQr,
+import type {
+  AssignedQr,
 } from "@/components/orders/PremadeQrAssignmentCard";
 import CustomerUploadCard from "@/components/orders/CustomerUploadCard";
+import ReadyOrderPanel from "@/components/orders/ReadyOrderPanel";
 import type { MemoryOrder as MemoryOrderRecord } from "@/types/memory";
 
 type MemoryOrder = Pick<
@@ -508,119 +508,31 @@ export default function OrderPage() {
             )}
 
             {ready && (
-              <>
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-                  <p className="font-semibold text-emerald-900">
-                    ✓ Voice message received
-                  </p>
-
-                  {order.uploaded_at && (
-                    <p className="mt-2 text-sm text-emerald-700">
-                      Received{" "}
-                      {new Intl.DateTimeFormat(
-                        "en-GB",
-                        {
-                          dateStyle:
-                            "medium",
-                          timeStyle:
-                            "short",
-                        }
-                      ).format(
-                        new Date(
-                          order.uploaded_at
-                        )
-                      )}
-                    </p>
-                  )}
-                </div>
-
-                <a
-                  href={getMemoryUrl()}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-4 block rounded-lg border border-emerald-900 px-4 py-3 text-center font-semibold text-emerald-900 hover:bg-emerald-50"
-                >
-                  Open recipient page
-                </a>
-
-                <PremadeQrAssignmentCard
-                  assignedQr={assignedQr}
-                  qrCodeInput={qrCodeInput}
-                  qrBusy={qrBusy}
-                  qrError={qrError}
-                  qrSuccess={qrSuccess}
-                  premadeQrUrl={getPremadeQrUrl()}
-                  onCodeChange={setQrCodeInput}
-                  onAssign={() =>
-                    void runQrAction(
-                      "assign",
-                      qrCodeInput
-                    )
-                  }
-                  onActivate={(code) =>
-                    void runQrAction(
-                      "activate",
-                      code
-                    )
-                  }
-                />
-
-                {order.upload_source !== "PREMADE_QR" && (
-                  <>
-                    {order.label_printed_at && (
-                      <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
-                        <p className="font-semibold text-emerald-900">
-                          ✓ Label printed
-                        </p>
-
-                        <p className="mt-1 text-sm text-slate-500">
-                          {new Intl.DateTimeFormat(
-                            "en-GB",
-                            {
-                              dateStyle: "medium",
-                              timeStyle: "short",
-                            }
-                          ).format(
-                            new Date(
-                              order.label_printed_at
-                            )
-                          )}
-                        </p>
-                      </div>
-                    )}
-
-                    <MemoryQr
-                      publicCode={
-                        order.public_code
-                      }
-                      recipientName={
-                        order.recipient_name
-                      }
-                      printed={
-                        !!order.label_printed_at
-                      }
-                      markingPrinted={
-                        markingPrinted
-                      }
-                      onPrinted={
-                        markLabelPrinted
-                      }
-                    />
-                  </>
-                )}
-
-                {order.upload_source === "PREMADE_QR" && (
-                  <div className="mt-4 rounded-xl border border-cyan-200 bg-cyan-50 p-4">
-                    <p className="font-semibold text-cyan-900">
-                      ✓ No new QR label needs to be printed
-                    </p>
-
-                    <p className="mt-1 text-sm leading-6 text-cyan-800">
-                      This order was created from the pre-printed QR already attached to the physical Memory Block.
-                    </p>
-                  </div>
-                )}
-              </>
+              <ReadyOrderPanel
+                order={order}
+                memoryUrl={getMemoryUrl()}
+                assignedQr={assignedQr}
+                qrCodeInput={qrCodeInput}
+                qrBusy={qrBusy}
+                qrError={qrError}
+                qrSuccess={qrSuccess}
+                premadeQrUrl={getPremadeQrUrl()}
+                markingPrinted={markingPrinted}
+                onCodeChange={setQrCodeInput}
+                onAssign={() =>
+                  void runQrAction(
+                    "assign",
+                    qrCodeInput
+                  )
+                }
+                onActivate={(code) =>
+                  void runQrAction(
+                    "activate",
+                    code
+                  )
+                }
+                onPrinted={markLabelPrinted}
+              />
             )}
           </section>
         </div>
