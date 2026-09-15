@@ -5,6 +5,7 @@ type Props = {
   recordingBusy: boolean;
   audioFile: File | null;
   onSelectAudio: (file: File | undefined) => void;
+  onRecordedAudio: (file: File | undefined) => void;
   onRemoveAudio: () => void;
   onBusyChange: (busy: boolean) => void;
 };
@@ -14,6 +15,7 @@ export default function StaffAudioInput({
   recordingBusy,
   audioFile,
   onSelectAudio,
+  onRecordedAudio,
   onRemoveAudio,
   onBusyChange,
 }: Props) {
@@ -87,7 +89,7 @@ export default function StaffAudioInput({
 
         <VoiceRecorder
           disabled={locked}
-          onRecorded={onSelectAudio}
+          onRecorded={onRecordedAudio}
           onBusyChange={onBusyChange}
         />
       </div>

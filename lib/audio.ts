@@ -2,13 +2,9 @@ import { MAX_AUDIO_FILE_SIZE } from "@/lib/constants";
 
 const AUDIO_FILE_PATTERN = /\.mp3$/i;
 
-export function validateAudioFile(
+function validateAudioSize(
   file: File
 ): string | null {
-  if (!AUDIO_FILE_PATTERN.test(file.name)) {
-    return "Please choose an MP3 file.";
-  }
-
   if (file.size === 0) {
     return "This file is empty. Please choose another recording.";
   }
@@ -18,4 +14,20 @@ export function validateAudioFile(
   }
 
   return null;
+}
+
+export function validateAudioFile(
+  file: File
+): string | null {
+  if (!AUDIO_FILE_PATTERN.test(file.name)) {
+    return "Please choose an MP3 file.";
+  }
+
+  return validateAudioSize(file);
+}
+
+export function validateRecordedAudioFile(
+  file: File
+): string | null {
+  return validateAudioSize(file);
 }
