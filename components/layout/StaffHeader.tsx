@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import LogoutButton from "@/components/LogoutButton";
 
 type StaffSection =
   | "home"
@@ -64,6 +65,8 @@ export default function StaffHeader({
           <span className="hidden text-sm text-slate-500 lg:inline">
             Staff workspace
           </span>
+
+          <LogoutButton />
         </div>
       </div>
     </header>

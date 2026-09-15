@@ -32,13 +32,13 @@ export default function StaffAudioInput({
           </label>
 
           <p className="mt-2 text-sm text-slate-600">
-            MP3, M4A, WAV, OGG, OPUS or WebM · up to 25 MB
+            MP3 only · up to 25 MB
           </p>
 
           <input
             id="voice-note"
             type="file"
-            accept=".mp3,.m4a,.wav,.ogg,.opus,.webm,audio/*"
+            accept=".mp3,audio/mpeg"
             onChange={(event) => {
               onSelectAudio(event.target.files?.[0]);
               event.target.value = "";

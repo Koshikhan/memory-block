@@ -78,12 +78,12 @@ export default function CustomerVoiceUpload({
     setError("");
 
     if (
-      !/\.(mp3|m4a|wav|ogg|opus|webm)$/i.test(
+      !/\.mp3$/i.test(
         file.name
       )
     ) {
       setError(
-        "Please choose an MP3, M4A, WAV, OGG, OPUS or WebM recording."
+        "Please choose an MP3 recording."
       );
 
       return;
@@ -278,7 +278,7 @@ export default function CustomerVoiceUpload({
 
         <input
           type="file"
-          accept=".mp3,.m4a,.wav,.ogg,.opus,.webm,audio/*"
+          accept=".mp3,audio/mpeg"
           disabled={
             uploading ||
             recordingBusy

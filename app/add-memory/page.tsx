@@ -95,12 +95,12 @@ export default function AddMemoryPage() {
     setError("");
 
     if (
-      !/\.(mp3|m4a|wav|ogg|opus|webm)$/i.test(
+      !/\.mp3$/i.test(
         file.name
       )
     ) {
       setError(
-        "Please choose an MP3, M4A, WAV, OGG, OPUS or WebM recording."
+        "Please choose an MP3 recording."
       );
 
       return;
@@ -563,13 +563,12 @@ export default function AddMemoryPage() {
               </p>
 
               <p className="mt-2 text-sm text-slate-600">
-                MP3, M4A, WAV, OGG, OPUS
-                or WebM · up to 25 MB
+                MP3 only · up to 25 MB
               </p>
 
               <input
                 type="file"
-                accept=".mp3,.m4a,.wav,.ogg,.opus,.webm,audio/*"
+                accept=".mp3,audio/mpeg"
                 disabled={submitting}
                 onChange={(event) => {
                   selectAudio(

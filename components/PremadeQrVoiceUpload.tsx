@@ -103,19 +103,11 @@ export default function PremadeQrVoiceUpload({
     const extension =
       file.name.split(".").pop()?.toLowerCase() || "";
 
-    const allowed = [
-      "mp3",
-      "m4a",
-      "mp4",
-      "wav",
-      "ogg",
-      "opus",
-      "webm",
-    ];
+    const allowed = ["mp3"];
 
     if (!allowed.includes(extension)) {
       setError(
-        "Please use an MP3, M4A, WAV, OGG, OPUS, or WEBM audio file."
+        "Please use an MP3 audio file."
       );
       return;
     }
@@ -554,7 +546,7 @@ export default function PremadeQrVoiceUpload({
 
             <input
               type="file"
-              accept="audio/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4"
+              accept=".mp3,audio/mpeg"
               onChange={(event) =>
                 selectAudio(
                   event.target.files?.[0]
