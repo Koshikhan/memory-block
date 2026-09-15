@@ -109,8 +109,8 @@ test("customer can create a memory from the permanent shop QR page", async ({
       )
       .setInputFiles({
         name:
-          "shop-recording.wav",
-        mimeType: "audio/wav",
+          "shop-recording.mp3",
+        mimeType: "audio/mpeg",
         buffer: createTestWav(),
       });
 

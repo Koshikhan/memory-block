@@ -15,7 +15,7 @@ test("staff audio upload rejects unsupported files", async ({
 
   await expect(
     page.getByText(
-      "Please choose an MP3, M4A, WAV, OGG, OPUS or WebM file."
+      "Please choose an MP3 file."
     )
   ).toBeVisible();
 

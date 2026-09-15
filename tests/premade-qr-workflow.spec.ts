@@ -291,9 +291,9 @@ test("customer can activate a pre-made QR Memory Block", async ({
         )
         .setInputFiles({
           name:
-            "premade-recording.wav",
+            "premade-recording.mp3",
           mimeType:
-            "audio/wav",
+            "audio/mpeg",
           buffer:
             createTestWav(),
         });

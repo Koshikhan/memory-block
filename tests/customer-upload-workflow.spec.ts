@@ -224,8 +224,8 @@ test("customer can upload voice later and memory becomes ready", async ({
 
       await fileInput.setInputFiles({
         name:
-          "customer-recording.wav",
-        mimeType: "audio/wav",
+          "customer-recording.mp3",
+        mimeType: "audio/mpeg",
         buffer: createTestWav(),
       });
 
@@ -238,7 +238,7 @@ test("customer can upload voice later and memory becomes ready", async ({
 
       await expect(
         customerPage.getByText(
-          "customer-recording.wav"
+          "customer-recording.mp3"
         )
       ).toBeVisible();
 

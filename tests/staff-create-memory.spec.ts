@@ -102,8 +102,8 @@ test("staff can create a complete memory", async ({
     await page
       .getByLabel("Upload a voice note")
       .setInputFiles({
-        name: "e2e-recording.wav",
-        mimeType: "audio/wav",
+        name: "e2e-recording.mp3",
+        mimeType: "audio/mpeg",
         buffer: createTestWav(),
       });
 
