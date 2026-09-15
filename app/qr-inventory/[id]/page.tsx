@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import QRCode from "qrcode";
 
 import { createClient } from "@/lib/supabase/client";
+import StaffDetailHeader from "@/components/layout/StaffDetailHeader";
 import { PRODUCTION_APP_URL } from "@/lib/constants";
 import type {
   QrBatch,
@@ -207,23 +207,11 @@ export default function QrBatchPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link
-            href="/"
-            className="text-xl font-bold tracking-widest text-emerald-900"
-          >
-            MEMORY BLOCK
-          </Link>
-
-          <Link
-            href="/qr-inventory"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-          >
-            ← QR Inventory
-          </Link>
-        </div>
-      </header>
+      <StaffDetailHeader
+        backHref="/qr-inventory"
+        backLabel="QR Inventory"
+        maxWidth="7xl"
+      />
 
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
