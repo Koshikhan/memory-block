@@ -9,7 +9,10 @@ import {
 } from "@/lib/memories";
 
 import { createClient } from "@/lib/supabase/client";
-import { validateAudioFile } from "@/lib/audio";
+import {
+  validateAudioFile,
+  validateRecordedAudioFile,
+} from "@/lib/audio";
 import type { CreationMode } from "@/types/memory";
 
 import StaffHeader from "@/components/layout/StaffHeader";
@@ -167,6 +170,20 @@ export default function Home() {
     setAudioFile(null);
   }
 
+  function storeAudio(
+    file: File
+  ) {
+    clearAudio();
+
+    const url =
+      URL.createObjectURL(file);
+
+    previewUrlRef.current = url;
+
+    setAudioFile(file);
+    setAudioUrl(url);
+  }
+
   function selectAudio(
     file: File | undefined
   ) {
@@ -184,15 +201,27 @@ export default function Home() {
       return;
     }
 
-    clearAudio();
+    storeAudio(file);
+  }
 
-    const url =
-      URL.createObjectURL(file);
+  function selectRecordedAudio(
+    file: File | undefined
+  ) {
+    if (!file || locked) {
+      return;
+    }
 
-    previewUrlRef.current = url;
+    setError("");
 
-    setAudioFile(file);
-    setAudioUrl(url);
+    const validationError =
+      validateRecordedAudioFile(file);
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    storeAudio(file);
   }
 
   function changeCreationMode(
@@ -458,6 +487,7 @@ export default function Home() {
                     recordingBusy={recordingBusy}
                     audioFile={audioFile}
                     onSelectAudio={selectAudio}
+                    onRecordedAudio={selectRecordedAudio}
                     onRemoveAudio={() => {
                       clearAudio();
                       setError("");

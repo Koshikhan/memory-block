@@ -81,6 +81,43 @@ export default function AddMemoryPage() {
     setAudioFile(null);
   }
 
+  function storeAudio(
+    file: File
+  ) {
+    clearAudio();
+
+    const url =
+      URL.createObjectURL(file);
+
+    previewUrlRef.current =
+      url;
+
+    setAudioFile(file);
+    setAudioUrl(url);
+  }
+
+  function validateCommonAudio(
+    file: File
+  ): boolean {
+    if (file.size === 0) {
+      setError(
+        "This recording is empty. Please try again."
+      );
+      return false;
+    }
+
+    if (
+      file.size > MAX_FILE_SIZE
+    ) {
+      setError(
+        "Please choose a recording up to 25 MB."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   function selectAudio(
     file: File | undefined
   ) {
@@ -102,38 +139,34 @@ export default function AddMemoryPage() {
       setError(
         "Please choose an MP3 recording."
       );
-
       return;
     }
 
-    if (file.size === 0) {
-      setError(
-        "This recording is empty. Please try again."
-      );
-
+    if (!validateCommonAudio(file)) {
       return;
     }
 
+    storeAudio(file);
+  }
+
+  function selectRecordedAudio(
+    file: File | undefined
+  ) {
     if (
-      file.size > MAX_FILE_SIZE
+      !file ||
+      submitting ||
+      completedOrder
     ) {
-      setError(
-        "Please choose a recording up to 25 MB."
-      );
-
       return;
     }
 
-    clearAudio();
+    setError("");
 
-    const url =
-      URL.createObjectURL(file);
+    if (!validateCommonAudio(file)) {
+      return;
+    }
 
-    previewUrlRef.current =
-      url;
-
-    setAudioFile(file);
-    setAudioUrl(url);
+    storeAudio(file);
   }
 
   async function handleSubmit(
@@ -540,7 +573,7 @@ export default function AddMemoryPage() {
             <div className="mt-5">
               <VoiceRecorder
                 disabled={submitting}
-                onRecorded={selectAudio}
+                onRecorded={selectRecordedAudio}
                 onBusyChange={
                   setRecordingBusy
                 }
