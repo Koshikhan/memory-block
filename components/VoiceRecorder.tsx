@@ -123,8 +123,12 @@ export default function VoiceRecorder({
       recorder.onerror = () => {
         failed = true;
         releaseMicrophone();
+        recorderRef.current = null;
+        busyRef.current = false;
 
         if (mountedRef.current) {
+          setStatus("idle");
+          onBusyChange(false);
           setError("Recording failed. Please try again.");
         }
       };
